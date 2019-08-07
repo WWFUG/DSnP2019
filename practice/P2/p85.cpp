@@ -34,7 +34,6 @@ class N_
 void N::gen(){
     assert(_n==0);  
     int i = rand()%(1<<MAX_DEPTH);
-    cout << i << endl;
     if(nList[i] == 0){
         N_* temp = new N_;
         _n = temp;
@@ -46,7 +45,7 @@ void N::gen(){
     }
     else if(nList[i]!=0){
         _n = nList[i];
-        _n->_refCnt++;
+        nList[i]->_refCnt++;
     }
 }
 
@@ -74,7 +73,6 @@ void N::statistics()const {
 
 int main(){
     N root;
-    cout << sizeof(nList)/sizeof(N_*) << endl;
     root.gen();
     root.statistics();
 
