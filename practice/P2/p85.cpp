@@ -3,11 +3,12 @@
 #include <cstdlib>
 using namespace std;
 
-#define MAX_DEPTH 5
+#define MAX_DEPTH 10
 
 class N;
 class N_;
 N_* nList[1 << MAX_DEPTH] = {0};
+
 
 class N
 {
@@ -15,7 +16,7 @@ public:
     N ():_n(0) {};
     void gen();
     void statistics() const;
-
+    ~N();
 private:
     /* data */
     N_* _n;
@@ -29,7 +30,12 @@ class N_
     N _child1;
     N _child2;
     N_():_refCnt(0){};
+    ~N_();
 };
+
+N::~N(){
+    if(this->_n!=0) delete this->_n;
+}
 
 void N::gen(){
     assert(_n==0);  
@@ -52,7 +58,7 @@ void N::gen(){
 void N::statistics()const {
     unsigned int maxRef = 0;
     for (int i = 0; i < 1<<MAX_DEPTH; i++) {
-        if(nList[i]->_refCnt > maxRef){
+        if( nList[i]!=0 && nList[i]->_refCnt > maxRef){
             maxRef = nList[i]->_refCnt;
         }
     }
@@ -71,27 +77,17 @@ void N::statistics()const {
     }
 }
 
+N_::~N_(){
+    this->_child1.~N();
+    this->_child2.~N();
+}
+
 int main(){
     N root;
     root.gen();
     root.statistics();
-
     return 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
