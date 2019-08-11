@@ -1,3 +1,4 @@
 #excecutable files
 *.out
-
+#object file
+.o
