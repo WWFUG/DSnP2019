@@ -71,7 +71,7 @@ int Json::sum() const{
     return sum;
 }
 
-int Json::ave() const{
+float Json::ave() const{
     this->isEmpty();
     return (this->sum()/(int)this->_obj.size());
 }

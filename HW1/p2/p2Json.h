@@ -21,7 +21,7 @@ public:
     int sum() const;
     const JsonElem& max() const;
     const JsonElem& min() const;
-    int ave() const;
+    float ave() const;
     void print() const;
 
 };
