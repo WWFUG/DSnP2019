@@ -1,4 +1,5 @@
 #excecutable files
+*Run*
 *.out
 #object file
 .o
