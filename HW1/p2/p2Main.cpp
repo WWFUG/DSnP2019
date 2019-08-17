@@ -21,16 +21,24 @@ int main(){
         cin >> command;
         if (command=="PRINT") json.print();
         else if(command=="SUM"){
-            cout << "The summation of the values is: " << json.sum() << "." << endl;
+            if(!json.isEmpty()){
+                cout << "The summation of the values is: " << json.sum() << "." << endl;
+            }
         }
         else if(command=="AVE"){
-            cout << "The average of the values is: " << fixed << setprecision(1) << json.ave() << "." << endl;
+            if(!json.isEmpty()){
+                cout << "The average of the values is: " << fixed << setprecision(1) << json.ave() << "." << endl;
+            }
         }
         else if(command=="MAX"){
-            cout << "The maximum element is: { " << json.max() << " }." << endl;
+            if(!json.isEmpty()){
+                cout << "The maximum element is: { " << json.max() << " }." << endl;
+            }
         }
         else if(command=="MIN"){
-            cout << "The minimum element is: { " << json.min() << " }." << endl;
+            if(!json.isEmpty()){
+                cout << "The minimum element is: { " << json.min() << " }." << endl;
+            }
         }
         else if(command=="ADD"){
             string key,value;

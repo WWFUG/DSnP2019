@@ -73,7 +73,7 @@ int Json::sum() const{
 
 float Json::ave() const{
     this->isEmpty();
-    return (this->sum()/(int)this->_obj.size());
+    return ((float)this->sum()/(float)this->_obj.size());
 }
 
 const JsonElem& Json::max() const{
