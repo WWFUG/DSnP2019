@@ -48,4 +48,5 @@ int main(){
         else if(command=="EXIT") break;
         else cout << "Not a command. Please try again." << endl;
     }while(true); 
+    return 0;
 }
