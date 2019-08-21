@@ -86,10 +86,8 @@ enum ParseChar
    ARROW_DOWN_KEY   = 66 + ARROW_KEY_FLAG,
    ARROW_RIGHT_KEY  = 67 + ARROW_KEY_FLAG,
    ARROW_LEFT_KEY   = 68 + ARROW_KEY_FLAG,
-   END_KEY = 70 + ARROW_KEY_FLAG, // modified
-   HOME_KEY = 72 + ARROW_KEY_FLAG,// modified
    ARROW_KEY_BEGIN  = ARROW_UP_KEY,
-   ARROW_KEY_END    = HOME_KEY,
+   ARROW_KEY_END    = ARROW_LEFT_KEY,
 
    //
    // -- MOD keys: 27 -> 91 -> {49-54} -> 126
@@ -97,13 +95,13 @@ enum ParseChar
    //
    MOD_KEY_FLAG     = 1 << 9,
    MOD_KEY_INT      = 91,
-   //HOME_KEY         = 49 + MOD_KEY_FLAG,
+   HOME_KEY         = 49 + MOD_KEY_FLAG,
    INSERT_KEY       = 50 + MOD_KEY_FLAG,
    DELETE_KEY       = 51 + MOD_KEY_FLAG,
-   //END_KEY          = 52 + MOD_KEY_FLAG,
+   END_KEY          = 52 + MOD_KEY_FLAG,
    PG_UP_KEY        = 53 + MOD_KEY_FLAG,
    PG_DOWN_KEY      = 54 + MOD_KEY_FLAG,
-   MOD_KEY_BEGIN    = INSERT_KEY,// modified
+   MOD_KEY_BEGIN    = HOME_KEY,
    MOD_KEY_END      = PG_DOWN_KEY,
    MOD_KEY_DUMMY    = 126,
 

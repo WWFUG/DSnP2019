@@ -59,6 +59,10 @@ private:
    void moveToHistory(int index);
    void addHistory();
    void retrieveHistory();
+   void print(){
+       cout << "read_Buf : " << _readBuf << endl;
+       cout << "Cursor   : " << _readBufPtr << endl;
+   }
    #ifdef TA_KB_SETTING
    void taTestOnly() {}
    #endif

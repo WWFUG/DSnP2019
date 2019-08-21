@@ -45,13 +45,13 @@ void CmdParser::readCmdInt(istream &istr)
         switch (pch)
         {
         case LINE_BEGIN_KEY:
-        case HOME_KEY:
             moveBufPtr(_readBuf);
             break;
+        case HOME_KEY: 
         case LINE_END_KEY:
-        case END_KEY:
             moveBufPtr(_readBufEnd);
             break;
+        case END_KEY:
         case BACK_SPACE_KEY:
             if (_readBufPtr > _readBuf)
             {
@@ -65,13 +65,7 @@ void CmdParser::readCmdInt(istream &istr)
             deleteChar();
             break;
         case NEWLINE_KEY:
-
-            if (_tempCmdStored && _historyIdx == (int)_history.size())
-                _history.pop_back();
-            _tempCmdStored = false;
             addHistory();
-            _historyIdx = _history.size();
-
             cout << char(NEWLINE_KEY);
             resetBufAndPrintPrompt();
             break;
@@ -124,8 +118,24 @@ void CmdParser::readCmdInt(istream &istr)
 //        to move the _readBufPtr to proper position.
 bool CmdParser::moveBufPtr(char *const ptr)
 {
-    //TODO...
-    return 1;
+    if(ptr<_readBuf || ptr>_readBufEnd){
+        mybeep();
+        return false;
+    }
+    int ndir = ptr - _readBufPtr;//number of dif. and direction
+    if(ndir>0){
+        for (int i = 0; i < ndir; ++i) {
+            cout << *_readBufPtr;
+            ++_readBufPtr;
+        }
+    }
+    else{
+        for (int i = 0; i < -ndir; ++i) {
+            cout << '\b' ;
+            --_readBufPtr;
+        }
+    }    
+    return true;
 }
 
 // [Notes]
@@ -149,8 +159,21 @@ bool CmdParser::moveBufPtr(char *const ptr)
 //
 bool CmdParser::deleteChar()
 {
-    //TODO
-    return 1;
+    if(_readBufPtr==_readBufEnd){
+        mybeep();
+        return false;
+    }
+    int cnt = 0;
+    for (size_t i = _readBufPtr-_readBuf; i < strlen(_readBuf); ++i,++cnt) {
+        _readBuf[i] = _readBuf[i+1];
+        cout << _readBuf[i];
+    }
+    cout << ' ';
+    _readBufEnd--;*_readBufEnd = '\0';
+    for (int i = 0; i < cnt ; ++i) {
+        cout << '\b';
+    }
+    return true;
 }
 
 // 1. Insert character 'ch' for "repeat" times at _readBufPtr
@@ -170,7 +193,28 @@ bool CmdParser::deleteChar()
 //
 void CmdParser::insertChar(char ch, int repeat)
 {
-    //TODO...
+    assert(repeat>=1);
+    int idx = _readBufPtr - _readBuf;//cursor idx before shifted
+    char tmp[strlen(_readBuf)-idx+1];//store to-be-right-shifted string
+
+    for(size_t i = idx; i<strlen(_readBuf); ++i){
+        tmp[i-idx] = _readBuf[i];
+    }
+    tmp[strlen(_readBuf)-idx] = '\0';
+
+    for (int i = idx; i < idx+repeat;++i) {
+        _readBuf[i] = ch;
+        cout << ch;
+    }
+    _readBuf[idx+repeat] = '\0';//for strcat
+
+    strcat(_readBuf, tmp);
+    cout << tmp;
+    for(size_t i=0;i<strlen(tmp);++i){
+        cout << '\b';
+    }
+    _readBufEnd+=repeat;*_readBufEnd = '\0';
+    _readBufPtr+=repeat; 
 }
 
 // 1. Delete the line that is currently shown on the screen
@@ -189,7 +233,22 @@ void CmdParser::insertChar(char ch, int repeat)
 //
 void CmdParser::deleteLine()
 {
-    //TODO
+    for (int i = 0; i < _readBufPtr-_readBuf; ++i) {
+        cout << '\b';
+    }
+    size_t buf_len = strlen(_readBuf);
+    for(size_t i = 0; i<buf_len ; ++i){
+        cout << ' ';
+        _readBuf[i] = '\0';
+    }
+    moveBufPtr(_readBuf);
+    /*
+    for(size_t i = 0; i<buf_len; ++i){
+        cout << '\b';
+    }
+    */
+    _readBufEnd = _readBuf;
+    if(*_readBufEnd!='\0') *_readBufEnd = '\0';
 }
 
 // This functions moves _historyIdx to index and display _history[index]
@@ -213,7 +272,27 @@ void CmdParser::deleteLine()
 //
 void CmdParser::moveToHistory(int index)
 {
-    //TODO
+    if( (_historyIdx==0 && index<_historyIdx) || (_historyIdx==(int)_history.size()-1 && index>_historyIdx)){
+        mybeep();
+        return;
+    }
+    if(index<_historyIdx){
+        if(index<0) index = 0;
+        else if(_historyIdx==(int)_history.size()){
+            if(!_tempCmdStored){
+                _history.push_back(string(_readBuf));
+                _tempCmdStored = true;
+            }
+        }
+        
+    }
+    else{
+        if(index>=(int)_history.size()){
+            index = _history.size()-1;
+        }
+    }
+    _historyIdx = index;
+    retrieveHistory();
 }
 
 // This function adds the string in _readBuf to the _history.
@@ -229,8 +308,30 @@ void CmdParser::moveToHistory(int index)
 // 5. Reset _historyIdx to _history.size() // for future insertion
 //
 void CmdParser::addHistory()
-{
-    //TODO
+{   
+    string buf_str = string(_readBuf); 
+    size_t start = buf_str.find_first_not_of(' '); // find the first not ' ' char
+    size_t end = buf_str.find_last_not_of(' ');    // find the last not ' ' char
+    if(start!=end || start!=string::npos){                             
+        buf_str = buf_str.substr(start, end-start+1); 
+    }
+    else{
+        buf_str = "";
+    }
+    if(buf_str!=""){ 
+        if(_tempCmdStored){
+            _history.pop_back();
+            _tempCmdStored = false;
+        }
+        _history.push_back(buf_str);
+    }
+    _historyIdx = _history.size();
+    /*
+    cout << "::addHistory::\n" ;
+    for(int i = 0; i<(int)_history.size(); ++i){
+        cout << i <<  " : " << _history[i] << endl;
+    }
+    */
 }
 
 // 1. Replace current line with _history[_historyIdx] on the screen
@@ -240,5 +341,8 @@ void CmdParser::addHistory()
 //
 void CmdParser::retrieveHistory()
 {
-    //TODO
+    deleteLine();
+    strcpy(_readBuf, _history[_historyIdx].c_str());
+    cout << _readBuf;
+    _readBufPtr = _readBufEnd = _readBuf+strlen(_readBuf);
 }
