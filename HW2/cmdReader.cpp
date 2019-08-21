@@ -4,7 +4,6 @@
   Synopsis     [ Define command line reader member functions ]
   Author       [ Chung-Yang (Ric) Huang ]
   Copyright    [ Copyleft(c) 2007-present LaDs(III), GIEE, NTU, Taiwan ]
-               [ Modified by Orange Hsu ]
 ****************************************************************************/
 #include <cassert>
 #include <cstring>
