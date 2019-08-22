@@ -242,7 +242,6 @@ void CmdParser::deleteLine()
     }
     _readBufPtr = _readBufEnd =  _readBuf+buf_len;
     moveBufPtr(_readBuf);  
-    _readBufEnd = _readBuf;
     if(*_readBufEnd!='\0') *_readBufEnd = '\0';
 }
 
@@ -267,19 +266,23 @@ void CmdParser::deleteLine()
 //
 void CmdParser::moveToHistory(int index)
 {
-    if( (_historyIdx==0 && index<_historyIdx) || (_historyIdx==(int)_history.size() && index>_historyIdx)){
+    if( (_historyIdx==0 && index<_historyIdx) || (_historyIdx>=(int)_history.size()-1 && index>_historyIdx)){
         mybeep();
         return;
     }
     if(index<_historyIdx){
         if(index<0) index = 0;
-        else if(_historyIdx==(int)_history.size()){
-            if(!_tempCmdStored){
+        else if(!_tempCmdStored){
+            if(_historyIdx==(int)_history.size()){
                 _history.push_back(string(_readBuf));
                 _tempCmdStored = true;
             }
         }
-        
+        else if(_tempCmdStored){
+            if(_historyIdx==(int)_history.size()-1){
+                _history[_historyIdx]=string(_readBuf);
+            }        
+        } 
     }
     else{
         if(index>=(int)_history.size()){
@@ -288,7 +291,6 @@ void CmdParser::moveToHistory(int index)
     }
     _historyIdx = index;
     retrieveHistory();
-
 }
 
 // This function adds the string in _readBuf to the _history.
@@ -335,11 +337,4 @@ void CmdParser::retrieveHistory()
     strcpy(_readBuf, _history[_historyIdx].c_str());
     cout << _readBuf;
     _readBufPtr = _readBufEnd = _readBuf+strlen(_readBuf);
-    /*
-    cout << endl;
-    cout << "========retrieveHostory=========\n" ;
-    for(int i = 0; i<(int)_history.size(); ++i){
-        cout << i <<  " : " << _history[i] << endl;
-    }
-    */
 }
