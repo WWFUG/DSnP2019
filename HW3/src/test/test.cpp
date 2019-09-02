@@ -26,7 +26,6 @@ main(int argc, char** argv)
    }
 
    ifstream inf(argv[1]);
-
    if (!inf) {
       cerr << "Error: cannot open file \"" << argv[1] << "\"!!\n";
       exit(-1);
@@ -36,6 +35,7 @@ main(int argc, char** argv)
       cout << "Table is resetting..." << endl;
       dbjson.reset();
    }
+   
    if (!(inf >> dbjson)) {
       cerr << "Error in reading JSON file!!" << endl;
       exit(-1);
@@ -45,7 +45,6 @@ main(int argc, char** argv)
    cout << " Print JSON object" << endl;
    cout << "========================" << endl;
    cout << dbjson << endl;
-
    // TODO
    // Insert what you want to test here by calling DBJson's member functions
 

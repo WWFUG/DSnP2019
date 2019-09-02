@@ -14,8 +14,8 @@ bool Json::line2Elem(const string& str){
     const size_t colon = str.find(':');
     string raw_value;
     int value;
-    if(comma>0){
-        raw_value = str.substr( colon+1, comma-colon+1 );
+    if(comma!=string::npos){
+        raw_value = str.substr( colon+1, comma-colon-1);
     }
     else{
         raw_value = str.substr(colon+1);

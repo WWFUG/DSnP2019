@@ -4,7 +4,6 @@
   Synopsis     [ Define database commands ]
   Author       [ Chung-Yang (Ric) Huang ]
   Copyright    [ Copyleft(c) 2015-present LaDs(III), GIEE, NTU, Taiwan ]
-               [ Modified by Orange Hsu ]
 ****************************************************************************/
 #include <iostream>
 #include <iomanip>

@@ -4,7 +4,6 @@
   Synopsis     [ Define command parsing member functions for class CmdParser ]
   Author       [ Chung-Yang (Ric) Huang ]
   Copyright    [ Copyleft(c) 2007-present LaDs(III), GIEE, NTU, Taiwan ]
-               [ Modified by Orange Hsu ]
 ****************************************************************************/
 #include <cassert>
 #include <iostream>

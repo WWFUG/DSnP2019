@@ -4,7 +4,6 @@
   Synopsis     [ Define database JSON classes ]
   Author       [ Chung-Yang (Ric) Huang ]
   Copyright    [ Copyleft(c) 2015-present LaDs(III), GIEE, NTU, Taiwan ]
-               [ Modified by Orange Hsu ]
 ****************************************************************************/
 #ifndef DB_JSON_H
 #define DB_JSON_H
@@ -59,11 +58,12 @@ public:
 
   // TODO modify these two functions according to the comments
   // return true if JSON file hasn't been read in
-  bool operator!() { return false; }
+  bool operator!() { return this->empty(); }
   // return this if JSON file has been read in; return NLL if not.
   operator void *() const
   {
-    return NULL;
+      if(this->empty())return NULL;
+      return (void*)this;
   }
 
   // Read DBJson
