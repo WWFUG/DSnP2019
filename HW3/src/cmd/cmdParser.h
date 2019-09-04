@@ -4,7 +4,6 @@
   Synopsis     [ Define class CmdParser ]
   Author       [ Chung-Yang (Ric) Huang ]
   Copyright    [ Copyleft(c) 2007-present LaDs(III), GIEE, NTU, Taiwan ]
-               [ Modified by Orange Hsu ]
 ****************************************************************************/
 #ifndef CMD_PARSER_H
 #define CMD_PARSER_H
@@ -123,12 +122,6 @@ public:
   // public helper functions
   void printHistory(int nPrint = -1) const;
   CmdExec *getCmd(string);
-  void printCmds(const string &);
-  void printDir(const string &, const string &);
-  void printFileName(vector<string> &);
-  size_t storePostStr(void);
-  void CleanTailStr(void);
-  void reStorePostStr(void);
 
 private:
   // Private member functions
@@ -182,7 +175,6 @@ private:
   CmdMap _cmdMap;                 // map from string to command
   stack<ifstream *> _dofileStack; // For recursive dofile calling
 
-  char _back_cmd[READ_BUF_SIZE]; // store string after current _readBufPtr
 };
 
 #endif // CMD_PARSER_H

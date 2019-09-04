@@ -28,7 +28,12 @@ void mybeep();
 bool CmdParser::openDofile(const string &dof)
 {
     //TODO
+    if(_dofile){
+        _dofileStack.push(_dofile);
+    }
+    if(_dofileStack.size()>=1024) return false;
     _dofile = new ifstream(dof.c_str());
+    if(!_dofile) return false;
     return true;
 }
 
@@ -37,7 +42,13 @@ void CmdParser::closeDofile()
 {
     assert(_dofile != 0);
     //TODO
+    _dofile->close();
     delete _dofile;
+    if(!_dofileStack.empty()){
+        _dofile = new ifstream;
+        _dofile = _dofileStack.top();
+        _dofileStack.pop();
+    }
 }
 
 // Return false if registration fails
@@ -99,6 +110,10 @@ CmdParser::execOneCmd()
 void CmdParser::printHelps() const
 {
     //TODO
+    for(auto it=_cmdMap.begin(); it!=_cmdMap.end(); ++it){
+        it->second->help();
+    }
+    cout << endl;
 }
 
 void CmdParser::printHistory(int nPrint) const
@@ -138,11 +153,27 @@ CmdParser::parseCmd(string &option)
     assert(!_history.empty());
     string str = _history.back();
 
-
     //TODO
     //
+    string cmd; //the cmd entered
+    size_t option_beg = myStrGetTok(str, cmd);
+    //getCmd
+    CmdExec* e = getCmd(cmd);
+    if(e==0){
+        cerr << "Illegal command!! \"(string cmdName)\"" << endl;
+    }
+
+    //Check whether there is a token
+    if(option_beg!=string::npos){
+        option = str.substr(option_beg, str.length()-option_beg);
+        // clean the leading and tailing space
+        option = option.substr(option.find_first_not_of(' '), option.find_last_not_of(' ')); 
+    }
+    else{
+        option = "";
+    }
     assert(str[0] != 0 && str[0] != ' ');
-    return NULL;
+    return e;
 }
 
 // Remove this function for TODO...
@@ -303,10 +334,20 @@ void CmdParser::listCmd(const string &str)
 // 2. The optional part can be partially omitted.
 // 3. All string comparison are "case-insensitive".
 //
+
 CmdExec *CmdParser::getCmd(string cmd)
 {
     CmdExec *e = 0;
     //TODO
+    //traverse _cmdMap, myStrNCmp the key(cmd string in map) and the cmd entered,
+    for (auto iter = _cmdMap.begin(); iter!=_cmdMap.end(); iter++) {
+        string mandCmd = iter->first;                               // mandotory part of cmd stored
+        string optCmd = iter->second->getOptCmd();                  // opt part of cmd stored
+        string cmd_all = mandCmd+optCmd;              
+        if( myStrNCmp(cmd_all, cmd, mandCmd.length())==0 ){         
+            e = iter->second;
+        }
+    } 
     return e;
 }
 

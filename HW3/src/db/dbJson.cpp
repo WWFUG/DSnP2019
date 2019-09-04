@@ -42,10 +42,11 @@ operator>>(istream &is, DBJson &j)
     string stmp;
     //convert each line to a DBJsonElem
     while(getline(is,stmp)){
+        // handling EOF , since test.cpp assert ifstream not receiving EOF
         if(stmp.find('}')!=string::npos){
             break;
         }
-        if( stmp.find('{')!=string::npos || stmp.find('}')!=string::npos || stmp.empty()){
+        if( stmp.find('{')!=string::npos || stmp.empty()){
             continue;
         }
         //find key
@@ -112,11 +113,10 @@ bool DBJson::add(const DBJsonElem &elm)
 float DBJson::ave(void) const
 {
     //TODO
-    float sum = 0;
-    for (size_t i = 0; i < _obj.size(); ++i) {
-        sum+=_obj[i].value();
-    }
-    return sum/(float)_obj.size();
+    if(_obj.empty()){
+        return NAN;
+    } 
+    return (float)this->sum()/(float)_obj.size();
 }
 
 // If DBJson is empty, set idx to size() and return INT_MIN
