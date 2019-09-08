@@ -77,7 +77,7 @@ operator<<(ostream &os, const DBJson &j)
     //TODO
     cout << "{\n";
     for (size_t i = 0; i < j.size(); ++i) {
-        os << j[i] ;
+        os << "  " << j[i] ;
         if(i!=j.size()-1) cout << ',';
         cout << '\n';
     } 

@@ -43,6 +43,22 @@ DBAppendCmd::exec(const string &option)
 {
     // TODO...
     // check option
+    vector<string> options;
+    if(!CmdExec::lexOptions(option, options, 2)){
+        return CMD_EXEC_ERROR;
+    }
+
+    string key = options[0];
+    int value;
+    if(!isValidVarName(key)){
+        cerr << "Error: Illegal key name: \"" << key << "\"!" << endl;
+    }
+    if(!myStr2Int(options[1], value)){
+        cerr << "Error: Illegal value: " << options[1] << "! (must be integer)" << endl;
+    }
+    if(!dbjson.add(DBJsonElem(key, value))){
+        cerr << "Error: Element with key \"" << key << "\" already exist!" << endl;
+    }
     return CMD_EXEC_DONE;
 }
 
@@ -196,7 +212,28 @@ void DBMinCmd::help() const
 CmdExecStatus
 DBPrintCmd::exec(const string &option)
 {
-    //TODO ... 
+    //TODO ...  
+    bool key_is_found = 0;
+    //Check option
+    if(option.empty()){
+        cout << dbjson << endl;
+        cout << "Total JSON elements: " << dbjson.size() << endl;
+    }
+    //Check whether Key Name is valid
+    else if(!isValidVarName(option)){
+        cerr << "Error: Illegal key name: \""<< option << "\"!" << endl; 
+    }
+    else{
+        for(unsigned i=0; i<dbjson.size(); ++i){
+            if( dbjson[i].key()==option ){
+                key_is_found = 1;
+                cout << "{" << dbjson[i] << "}" << endl; 
+            }
+        }
+        if(!key_is_found){
+            cerr << "Error: No JSON element with key \"" << option << "\" is found." << endl;
+        }
+    }
     
     return CMD_EXEC_DONE;
 }
