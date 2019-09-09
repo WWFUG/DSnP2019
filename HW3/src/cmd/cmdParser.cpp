@@ -444,6 +444,8 @@ void CmdParser::listCmd(const string &str)
                         if(files.empty()) mybeep();                       //No Matches
                         else if(files.size()==1){                         //Exact One Matches
                             for(size_t i=0; i<files[0].size(); ++i){
+                                if( i<prefix.size() && prefix[i]==files[0][i]) 
+                                    continue;
                                 insertChar(files[0][i]);
                             }
                             insertChar(' ');
