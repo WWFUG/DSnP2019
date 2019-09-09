@@ -40,7 +40,7 @@ class DBJson
 {
 public:
   // TODO: define constructor & member functions on your own
-  DBJson() {}
+  DBJson(): _json_read(false) {}
   bool add(const DBJsonElem &); // return false if key is repeated
   float ave() const;
   int max(size_t &) const;
@@ -58,11 +58,11 @@ public:
 
   // TODO modify these two functions according to the comments
   // return true if JSON file hasn't been read in
-  bool operator!() { return this->empty(); }
+  bool operator!() { return !_json_read; }
   // return this if JSON file has been read in; return NLL if not.
   operator void *() const
   {
-      if(this->empty())return NULL;
+      if(!_json_read)return NULL;
       return (void*)this;
   }
 
@@ -73,6 +73,7 @@ public:
 private:
   vector<DBJsonElem> _obj; // DO NOT change this definition.
                            // Use it to store JSON elements.
+  bool _json_read;
 };
 
 struct DBSortKey

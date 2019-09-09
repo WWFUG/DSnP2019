@@ -39,6 +39,7 @@ operator>>(istream &is, DBJson &j)
     // - You can assume the input file is with correct JSON file format
     // - NO NEED to handle error file format
     assert(j._obj.empty());
+    if(!j) j._json_read = true;
     string stmp;
     //convert each line to a DBJsonElem
     while(getline(is,stmp)){

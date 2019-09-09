@@ -213,6 +213,10 @@ CmdExecStatus
 DBPrintCmd::exec(const string &option)
 {
     //TODO ...  
+    if(!dbjson){
+        cerr << "Error: DB is not created yet！" << endl;
+        return CMD_EXEC_DONE;
+    }
     bool key_is_found = 0;
     //Check option
     if(option.empty()){
