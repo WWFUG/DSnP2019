@@ -109,7 +109,8 @@ class CmdParser
 public:
   CmdParser(const string &p) : _prompt(p), _dofile(0),
                                _readBufPtr(_readBuf), _readBufEnd(_readBuf),
-                               _historyIdx(0), _tabPressCount(0), _tempCmdStored(false) {}
+                               _historyIdx(0), _tabPressCount(0), _tempCmdStored(false),
+                               _e(0){}
   virtual ~CmdParser() {}
 
   bool openDofile(const string &dof);
@@ -135,8 +136,13 @@ private:
   ParseChar getChar(istream &) const;
   bool readCmd(istream &);
   CmdExec *parseCmd(string &);
+  string findCommonPrefix(const vector<string>& str_list);
   void listCmd(const string &);
   void printPrompt() const { cout << _prompt; }
+  void printDir(const vector<string>& files);
+  void cmdComplete(const string& cmd_prefix);
+  void dirComplete(const string& cmd_prefix, const string& dir_prefix);
+  
 
   // Helper functions
   bool moveBufPtr(char *const);
@@ -174,6 +180,8 @@ private:
                                   // Reset to false when new command added
   CmdMap _cmdMap;                 // map from string to command
   stack<ifstream *> _dofileStack; // For recursive dofile calling
+
+  CmdExec* _e;                    //Cmd in current line
 
 };
 

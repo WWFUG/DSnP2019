@@ -336,7 +336,8 @@ CmdParser::parseCmd(string &option)
 void CmdParser::listCmd(const string &str)
 {
     //TODO
-    if( str.empty() || str.find_first_not_of(' ')==string::npos){
+    /*************LIST ALL CMD*************/ 
+    if( str.empty() || str.find_first_not_of(' ')==string::npos){         
         cout << endl;
         int cnt = 1;
         for (auto iter = _cmdMap.begin(); iter!=_cmdMap.end(); ++iter,++cnt) {
@@ -344,145 +345,140 @@ void CmdParser::listCmd(const string &str)
             if(cnt%5==0) cout << endl;
         }        
         reprintCmd();
+        return;
     }
+    //clear the leading space
+    string my_str = str.substr(str.find_first_not_of(' ')); 
+    string cmd_prefix, dir_prefix;
+    // cmd_prefix is the first word
+    // dir_prefix is the word the cursor on.
+    myStrGetTok(my_str, cmd_prefix);
+    if(my_str.find(' ')==string::npos){
+        dir_prefix = "";
+    }
+    else{ 
+        dir_prefix = my_str.substr(my_str.find_last_of(' ')+1);
+    }
+
+    /*********CMD AUTO-COMPLETE CASES***********/
+    if(my_str.find(' ')==string::npos){
+        cmdComplete(cmd_prefix);
+    }
+    /**********DIR AUTO-COMPLETE CASES**********/
     else{
-        int partial_matches = 0;
-        bool match = false;
-        vector<CmdExec*> cmd_list;
-        vector<string> cmd_string;
-        for(auto iter = _cmdMap.begin(); iter!=_cmdMap.end(); ++iter){
-            string mand = iter->first;
-            CmdExec* cmd = iter->second; 
-            string cmd_str = mand+cmd->getOptCmd();
-            if( str.size() < cmd_str.size() ){          //Check partial matches
-                if( myStrNCmp(cmd_str, str, str.size())==0 ){
-                    cmd_list.push_back(cmd);
-                    cmd_string.push_back(cmd_str);
-                    ++partial_matches;
-                }
-            }
-            else if( str.size()>= cmd_str.size() ){     //Check if already contains command
-                if( myStrNCmp(str, mand, mand.size())==0 ){
-                    match = true;
-                    cmd_list.push_back(cmd);
-                    cmd_string.push_back(cmd_str);
+        dirComplete(cmd_prefix, dir_prefix);
+    }
+       
+}
+
+string CmdParser::findCommonPrefix(const vector<string>& str_list){
+    string common_prefix = "";
+    if(str_list.size()==1){
+        common_prefix = str_list[0];
+    }
+    else if(str_list.size()>1){
+        string compared_str = str_list[0];
+        bool matched = true;
+        for(size_t i=0; i<compared_str.size(); ++i){
+            for(size_t j=1; j<str_list.size(); ++j){
+                if( compared_str[i]!=str_list[j][i] ){
+                    matched = false;
                     break;
                 }
             }
+            if(!matched) break;
+            else common_prefix = common_prefix+compared_str[i];
         }
-        /********cmd line cases**********/
-        //partial matches cases
-        if( partial_matches==0 ){                       //no matches cmd
+    }
+    return common_prefix; 
+}
+
+void CmdParser::cmdComplete(const string& cmd_prefix){
+    CmdParser::_e = 0;
+    unsigned match_count = 0;
+    vector<string> cmd_string_list;
+    for (auto iter = _cmdMap.begin(); iter!=_cmdMap.end(); ++iter) {
+        string cmdstr = iter->first+iter->second->getOptCmd();
+        if(cmd_prefix.size()<=cmdstr.size()){
+            if( myStrNCmp(cmdstr, cmd_prefix, cmd_prefix.size())==0 ){
+                ++match_count;
+                cmd_string_list.push_back(cmdstr);
+            }
+        }
+    }
+    //No Match
+    if(match_count==0){ 
+        mybeep();
+    }
+    //Exact One Match
+    else if(match_count==1){
+        string cmd_match = cmd_string_list[0];
+        for(size_t i=cmd_prefix.size(); i<cmd_match.size(); i++){
+            insertChar(cmd_match[i]);
+        }
+        insertChar(' ');
+        CmdParser::_e = getCmd(cmd_string_list[0]);
+        _tabPressCount = 0;           //reset for already matched command
+    }
+    else{
+        cout << endl;
+        for(size_t i=0; i<cmd_string_list.size(); ++i){
+            cout << setw(12) << left << cmd_string_list[i];
+            if((i+1)%5==0) cout << endl;
+        }
+        reprintCmd();
+    }
+
+}
+
+void CmdParser::dirComplete(const string& cmd_prefix, const string& dir_prefix){
+    if(getCmd(cmd_prefix)==0){
+        mybeep();
+        return;
+    }
+    if(CmdParser::_e==0){
+        CmdParser::_e = getCmd(cmd_prefix);
+        if(CmdParser::_e==0){
+            mybeep();
+            return;
+        }
+        else _tabPressCount = 1;
+    }
+    if(_tabPressCount==1){
+        cout << endl;
+        CmdParser::_e->usage(cout);
+        reprintCmd();
+    }
+    else if(_tabPressCount>1){
+        vector<string> files;
+        listDir(files, dir_prefix, ".");
+        if(files.size()==0){
             mybeep();
         }
-        else if( partial_matches==1 ){                  //excact 1 match cmd
-            for(size_t i=str.size(); i<cmd_string[0].size(); ++i){
-                insertChar(cmd_string[0][i]);
+        else if(files.size()==1){
+            for(size_t i=dir_prefix.size(); i<files[0].size(); ++i){
+                insertChar(files[0][i]);
             }
             insertChar(' ');
-        }    
-        else if( partial_matches>1 ){                   //multiple matches
-            cout << endl;
-            for(unsigned i=0; i<cmd_list.size(); ++i){
-                cout << setw(12) << left << cmd_string[i];
-                if( (i+1)%5==0 ) cout << endl;
-            }
-            reprintCmd();
-            _tabPressCount = 0;
         }
-        //containing command cases
-        if( match ){                       
-            //if there is a space before the cursor
-            //Dir manipulation
-            if(str.find(' ')!=string::npos){
-                if(_tabPressCount<=1){                  //first press, list usage
-                    cout << endl;
-                    cmd_list[0]->usage(cout);
-                    reprintCmd();
-                }
-                else{                                   //second and onward press, list dir
-                    vector<string> files;
-                    if(str.back()==' '){
-                        listDir(files, "", ".");             
-                        if(files.size()==1){            //only one file in current dir
-                            for(size_t i=0; i<files[0].size(); ++i){
-                                insertChar(files[0][i]);
-                            }
-                            insertChar(' ');
-                        }
-                        else{                           //multiple files
-                            unsigned n_common_prefix = 0;
-                            string compared_str = files[0];
-                            for(size_t i=0; i<compared_str.size(); ++i){  //Check common prefix 
-                                bool common_char = true;
-                                for(size_t j=0; j<files.size(); ++j){
-                                    if(compared_str[i]!=files[j][i]){
-                                        common_char = false;
-                                        break;
-                                    } 
-                                }
-                                if(!common_char) break;
-                                insertChar(compared_str[i]);
-                                ++n_common_prefix;
-                            }
-                            if(n_common_prefix>0) mybeep();
-                            else{                                         //No common prefix, print all 
-                                cout << endl;                             //dir.
-                                for(size_t i=0; i<files.size(); ++i){     
-                                    cout << setw(16) << left << files[i];
-                                    if((i+1)%5==0) cout << endl;
-                                }
-                                reprintCmd();
-                            }
-                        }
-                    }
-                    else{                                                 //exist prefix right before the cursor
-                        string prefix;
-                        prefix = str.substr(str.find_first_of(' ')+1);
-                        assert(prefix!="");
-                        listDir(files, prefix, ".");
-                        if(files.empty()) mybeep();                       //No Matches
-                        else if(files.size()==1){                         //Exact One Matches
-                            for(size_t i=0; i<files[0].size(); ++i){
-                                if( i<prefix.size() && prefix[i]==files[0][i]) 
-                                    continue;
-                                insertChar(files[0][i]);
-                            }
-                            insertChar(' ');
-                        }
-                        else{                                             //Multiple Matches
-                            bool print_dir = true;                        //print Dir or not
-                            string compared_str = files[0];
-                            size_t n_common_prefix = 0;
-                            for(size_t i=0; i<compared_str.size(); ++i){  //Check common prefix 
-                                bool common_char = true;
-                                for(size_t j=0; j<files.size(); ++j){
-                                    if(compared_str[i]!=files[j][i]){
-                                        common_char = false;
-                                        break;
-                                    } 
-                                }
-                                if(!common_char) break;
-                                if(compared_str[i]!=prefix[i]){            //Dont insert the same prefix
-                                    insertChar(compared_str[i]);          //between files & cmd_prefix
-                                    print_dir = false;                    //if need to insert, Not to print dir
-                                }                                          
-                                ++n_common_prefix;
-                            }
-                            if(print_dir){
-                                cout << endl;
-                                for(size_t i=0; i<files.size(); ++i){
-                                    cout << setw(16) << left << files[i];
-                                    if((i+1)%5==0) cout << endl;
-                                }
-                                reprintCmd();
-                            }       
-                        }
-                    }
+        else{
+            //print directory
+            string dir_common_prefix = "";
+            dir_common_prefix = findCommonPrefix(files);
+            if(dir_common_prefix.size()>dir_prefix.size()){
+                for(size_t i=dir_prefix.size(); i<dir_common_prefix.size(); ++i){
+                    insertChar(dir_common_prefix[i]);
                 }
             }
+            else{
+                cout << endl;
+                for(size_t i=0; i<files.size(); ++i){
+                    cout << setw(16) << left << files[i];
+                    if((i+1)%5==0) cout << endl;
+                }
+                reprintCmd();
+            }
         }
-        else _tabPressCount = 0;
     }
 }
 

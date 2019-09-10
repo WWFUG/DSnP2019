@@ -43,7 +43,12 @@ DBAppendCmd::exec(const string &option)
 {
     // TODO...
     // check option
+
     vector<string> options;
+    if(!dbjson){
+        cerr << "Error: DB is not created yet" << endl;
+        return CMD_EXEC_ERROR;
+    }
     if(!CmdExec::lexOptions(option, options, 2)){
         return CMD_EXEC_ERROR;
     }
@@ -52,12 +57,15 @@ DBAppendCmd::exec(const string &option)
     int value;
     if(!isValidVarName(key)){
         cerr << "Error: Illegal key name: \"" << key << "\"!" << endl;
+        return CMD_EXEC_ERROR;
     }
-    if(!myStr2Int(options[1], value)){
+    else if(!myStr2Int(options[1], value)){
         cerr << "Error: Illegal value: " << options[1] << "! (must be integer)" << endl;
+        return CMD_EXEC_ERROR;
     }
-    if(!dbjson.add(DBJsonElem(key, value))){
+    else if(!dbjson.add(DBJsonElem(key, value))){
         cerr << "Error: Element with key \"" << key << "\" already exist!" << endl;
+        return CMD_EXEC_ERROR;
     }
     return CMD_EXEC_DONE;
 }
@@ -80,6 +88,10 @@ CmdExecStatus
 DBAveCmd::exec(const string &option)
 {
     // check option
+     if(!dbjson){
+        cerr << "Error: DB is not created yet!" << endl;
+        return CMD_EXEC_ERROR;
+    }   
     if (!CmdExec::lexNoOption(option))
         return CMD_EXEC_ERROR;
 
@@ -215,7 +227,7 @@ DBPrintCmd::exec(const string &option)
     //TODO ...  
     if(!dbjson){
         cerr << "Error: DB is not created yet！" << endl;
-        return CMD_EXEC_DONE;
+        return CMD_EXEC_ERROR;
     }
     bool key_is_found = 0;
     //Check option
@@ -226,6 +238,7 @@ DBPrintCmd::exec(const string &option)
     //Check whether Key Name is valid
     else if(!isValidVarName(option)){
         cerr << "Error: Illegal key name: \""<< option << "\"!" << endl; 
+        return CMD_EXEC_ERROR;
     }
     else{
         for(unsigned i=0; i<dbjson.size(); ++i){
@@ -236,6 +249,7 @@ DBPrintCmd::exec(const string &option)
         }
         if(!key_is_found){
             cerr << "Error: No JSON element with key \"" << option << "\" is found." << endl;
+            return CMD_EXEC_ERROR;
         }
     }
     
