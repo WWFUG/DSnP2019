@@ -19,7 +19,7 @@ DBJson dbjson;
 bool initDbCmd()
 {
     //TODO...
-    if (!(cmdMgr->regCmd("DBAppend", 3, new DBAppendCmd) &&
+    if (!(cmdMgr->regCmd("DBAPpend", 4, new DBAppendCmd) &&
           cmdMgr->regCmd("DBAVerage", 4, new DBAveCmd) &&
           cmdMgr->regCmd("DBCount", 3, new DBCountCmd) &&
           cmdMgr->regCmd("DBMAx", 4, new DBMaxCmd) &&
@@ -56,15 +56,15 @@ DBAppendCmd::exec(const string &option)
     string key = options[0];
     int value;
     if(!isValidVarName(key)){
-        cerr << "Error: Illegal key name: \"" << key << "\"!" << endl;
+        cerr << "Error: Illegal option!! (" << key << ")" << endl;
         return CMD_EXEC_ERROR;
     }
     else if(!myStr2Int(options[1], value)){
-        cerr << "Error: Illegal value: " << options[1] << "! (must be integer)" << endl;
+        cerr << "Error: Illegal option!! (" << options[1] << ")" << endl;
         return CMD_EXEC_ERROR;
     }
     else if(!dbjson.add(DBJsonElem(key, value))){
-        cerr << "Error: Element with key \"" << key << "\" already exist!" << endl;
+        cerr << "Error: Element with key \"" << key << "\" already exists!!" << endl;
         return CMD_EXEC_ERROR;
     }
     return CMD_EXEC_DONE;
@@ -244,7 +244,7 @@ DBPrintCmd::exec(const string &option)
         for(unsigned i=0; i<dbjson.size(); ++i){
             if( dbjson[i].key()==option ){
                 key_is_found = 1;
-                cout << "{" << dbjson[i] << "}" << endl; 
+                cout << "{ " << dbjson[i] << " }" << endl; 
             }
         }
         if(!key_is_found){

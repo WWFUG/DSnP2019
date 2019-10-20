@@ -175,7 +175,7 @@ CmdParser::parseCmd(string &option)
     //getCmd
     CmdExec* e = getCmd(cmd);
     if(e==0){
-        cerr << "Illegal command!! \"(string cmdName)\"" << endl;
+        cerr << "Illegal command!! (" << cmd << ")" << endl;
     }
 
     //Check whether there is a token
@@ -367,17 +367,16 @@ void CmdParser::listCmd(const string &str)
     /**********DIR AUTO-COMPLETE CASES**********/
     else{
         dirComplete(cmd_prefix, dir_prefix);
-    }
-       
+    } 
 }
 
 string CmdParser::findCommonPrefix(const vector<string>& str_list){
     string common_prefix = "";
-    if(str_list.size()==1){
+    if(str_list.size()==1){                 //only one string
         common_prefix = str_list[0];
     }
     else if(str_list.size()>1){
-        string compared_str = str_list[0];
+        string compared_str = str_list[0];  // check if all string in list have common_prefix
         bool matched = true;
         for(size_t i=0; i<compared_str.size(); ++i){
             for(size_t j=1; j<str_list.size(); ++j){
