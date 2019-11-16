@@ -42,6 +42,7 @@ public:
    DList() {
       _head = new DListNode<T>(T());
       _head->_prev = _head->_next = _head; // _head is a dummy node
+      _isSorted = false;
    }
    ~DList() { clear(); delete _head; }
 
@@ -122,13 +123,7 @@ public:
        _head = _head->_next;
        _head->_prev = popped->_prev;
        popped->_prev->_next = _head;
-       /*
-       cout << "Head->Prev : " << _head->_prev << " " << _head->_prev->_data << endl;
-       cout << "Head : " << _head << " " << _head->_data << endl;
-       cout << "Freed memory :" << popped << " " << popped->_data << endl;
-       */
        delete popped;
-       //print_verbose();
    }
    void pop_back() { 
        if(empty()) return;
@@ -139,13 +134,7 @@ public:
        }
        popped->_prev->_next = _head->_prev;
        _head->_prev->_prev = popped->_prev;
-       /*
-       cout << "Head->Prev : " << _head->_prev << " " << _head->_prev->_data << endl;
-       cout << "Head : " << _head << " " << _head->_data << endl;
-       cout << "Freed memory :" << popped << " " << popped->_data << endl;
-       */
        delete popped;
-       //print_verbose();
    }
 
    // return false if nothing to erase
@@ -213,12 +202,13 @@ private:
    }  
    
    void bubble_sort() const{
+       if(empty()) return ;
        unsigned num = size();
        DListNode<T>* iter = _head;
-       for (unsigned i = 0; i < num; ++i) {
+       for (unsigned i = 0; i < num-1; ++i) {
            T &now = iter->_data;
            T &next = iter->_next->_data;
-           for (unsigned j = 0; j < num-1; ++j) {
+           for (unsigned j = 0; j < num-i-1; ++j) {
                if(now>next) swap(now,next);
            }
            iter = iter->_next;
