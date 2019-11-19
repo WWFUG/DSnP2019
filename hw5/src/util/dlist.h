@@ -203,15 +203,15 @@ private:
    
    void bubble_sort() const{
        if(empty()) return ;
-       unsigned num = size();
-       DListNode<T>* iter = _head;
-       for (unsigned i = 0; i < num-1; ++i) {
-           T &now = iter->_data;
-           T &next = iter->_next->_data;
-           for (unsigned j = 0; j < num-i-1; ++j) {
-               if(now>next) swap(now,next);
+       int num = size();
+       for (int i = 0; i < num-1; ++i) {
+           DListNode<T>* iter = _head;
+           for (int j = i; j < num-1; ++j) {
+               if(iter->_data > iter->_next->_data){
+                   swap(iter->_data,iter->_next->_data);
+               }
+               iter = iter->_next;
            }
-           iter = iter->_next;
        }
    }
    void swap (T &a, T &b) const{

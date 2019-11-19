@@ -435,14 +435,7 @@ void CmdParser::dirComplete(const string& cmd_prefix, const string& dir_prefix){
         mybeep();
         return;
     }
-    if(CmdParser::_e==0){
-        CmdParser::_e = getCmd(cmd_prefix);
-        if(CmdParser::_e==0){
-            mybeep();
-            return;
-        }
-        else _tabPressCount = 1;
-    }
+
     if(_tabPressCount==1){
         cout << endl;
         CmdParser::_e->usage(cout);

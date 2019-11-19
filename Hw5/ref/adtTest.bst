@@ -1,1 +1,0 @@
-adtTest-linux18.bst

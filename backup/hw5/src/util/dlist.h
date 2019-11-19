@@ -56,7 +56,7 @@ public:
       ~iterator() {} // Should NOT delete _node
 
       // TODO: implement these overloaded operators
-      const T& operator * () const { return *(this); }
+      const T& operator * () const { return _node->_data; }
       T& operator * () { return _node->_data; }
       iterator& operator ++ () { return *(this); }
       iterator operator ++ (int) { return *(this); }

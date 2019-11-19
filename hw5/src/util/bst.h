@@ -20,18 +20,23 @@ template <class T> class BSTree;
 //
 // DO NOT add any public data member or function to this class!!
 //
+#define PATCH
 template <class T>
 class BSTreeNode
 {
     friend class BSTree<T>;
     friend class BSTree<T>::iterator;
     BSTreeNode<T>(const T& d, BSTreeNode<T>* L = 0, BSTreeNode<T>* R = 0, BSTreeNode<T>* P = 0, int dir = -1) :
-    _data(d), _left(L), _right(R), _parent(P), _dir(dir){}
+    _data(d), _parent(P), _dir(dir){_child[0] = L, _child[1] = R;}
 
     // TODO: design your own class!!
     T              _data;
+    #ifdef PATCH
+    BSTreeNode<T>* _child[2];
+    #else
     BSTreeNode<T>* _left;
     BSTreeNode<T>* _right;
+    #endif
     BSTreeNode<T>* _parent;
     int            _dir; // recording the dir parent goes to current node(left(0)/right(1)/root(-1))
 };
@@ -58,7 +63,7 @@ public:
             // if not end()
             if(_node){
                 // if has right subtree, find successor
-                if(_node->_right)
+                if(_node->_child[1])
                     _node = successor(_node);
                 else{
                     // find the next rightest root
@@ -81,7 +86,7 @@ public:
         iterator& operator--(){
             BSTreeNode<T>* n = _node;
             if(_node){
-                if(_node->_left)
+                if(_node->_child[0])
                     _node = predecessor(_node);
                 else{
                     while(_node->_dir==0){
@@ -133,19 +138,21 @@ public:
             int dir = 0;
             BSTreeNode<T>* root = iter;
             if( x>=iter->_data){
-                iter = iter->_right;
+                iter = iter->_child[1];
                 dir = 1;
             }
             else{
-                iter = iter->_left;
+                iter = iter->_child[0];
                 dir = 0;
             }
             if(!iter){
+                root->_child[dir] = new BSTreeNode<T>(x, 0, 0, root, dir);
+                /*
                 if(dir==1)
                     root->_right = new BSTreeNode<T>(x, 0, 0, root, dir);
                 else
                     root->_left = new BSTreeNode<T>(x, 0, 0, root, dir);
-                //print();
+                */
                 break;
             }
         }
@@ -194,71 +201,71 @@ private:
 
     // return its next largest element in subtree
     static BSTreeNode<T>* successor(BSTreeNode<T>* root) {
-        return min(root->_right);
+        return min(root->_child[1]);
     }
    
     // return its previous largest element in subtree 
     static BSTreeNode<T>* predecessor(BSTreeNode<T>* root) {
-        return max(root->_left);
+        return max(root->_child[0]);
     }
 
     static BSTreeNode<T>* min(BSTreeNode<T>* root) {
         if(!root) return 0;
-        while(root->_left)
-            root = root->_left;
+        while(root->_child[0])
+            root = root->_child[0];
         return root;
     }
 
     static BSTreeNode<T>* max(BSTreeNode<T>* root) {
         if(!root) return 0;
-        while(root->_right)
-            root = root->_right;
+        while(root->_child[1])
+            root = root->_child[1];
         return root;
     }
 
     bool delete_node(BSTreeNode<T>* node){
         if(!node) return false;
         // if root
-        if(node==_root) {
+        if(node==_root){
             if(_size==1){
                 delete _root;
                 _root = 0;
                 return true;
             }
-            else if(_root->_left && _root->_right){
+            else if(_root->_child[0] && _root->_child[1]){
                 BSTreeNode<T>* succ = successor(_root);
                 _root->_data = succ->_data;
                 delete_node(succ);
             }
             else{
                 BSTreeNode<T>* tmp = _root;
-                if(_root->_left)
-                    _root = _root->_left;
+                if(_root->_child[0])
+                    _root = _root->_child[0];
                 else
-                    _root = _root->_right;
+                    _root = _root->_child[1];
                 delete tmp;
             }
             _root->_parent = 0;
             _root->_dir = -1;
             return true;
         }
-        // if not root
-        if(node->_left && node->_right){
+        if(node->_child[0] && node->_child[1]){
             BSTreeNode<T>* succ = successor(node);
             node->_data = succ->_data;
-            delete_node(succ);
+            if(succ->_child[1])
+                link(succ);
+            else
+                succ->_parent->_child[succ->_dir] = 0;
+            delete succ;
         }
-        else if(!node->_left && !node->_right){
-            if(node->_dir==0)
-                node->_parent->_left = 0;
-            else 
-                node->_parent->_right = 0;
+        else if(!node->_child[0] && !node->_child[1]){
+            node->_parent->_child[node->_dir] = 0;
             delete node;
         }
         else{
             link(node);
             delete node;
-        }
+        } 
         return true;
     }
 
@@ -267,9 +274,9 @@ private:
         BSTreeNode<T>* iter = _root;
         while(iter){
             if( x>iter->_data )
-                iter = iter->_right;
+                iter = iter->_child[1];
             else if( x<iter->_data )
-                iter = iter->_left;
+                iter = iter->_child[0];
             else if( x==iter->_data )
                 return iter;
         } 
@@ -278,28 +285,28 @@ private:
 
     void clear_tree(BSTreeNode<T>* root){
         if(!_root) return;
-        if(root->_left!=0){
-            clear_tree(root->_left);
+        if(root->_child[0]){
+            clear_tree(root->_child[0]);
         }
-        if(root->_right!=0){
-            clear_tree(root->_right);
+        if(root->_child[1]){
+            clear_tree(root->_child[1]);
         }
         delete root;
     }
 
     void pre_order_print(BSTreeNode<T>* root, int level = 1) const{
         if(!root) return;
-        cout << root->_data << " " << root << "\n";
+        cout << root->_data << "\n";
         for(int i=0; i<level; ++i) cout << " ";
-        if(root->_left!=0){
-            pre_order_print(root->_left, level+1);
+        if(root->_child[0]){
+            pre_order_print(root->_child[0], level+1);
         }
         else{
             cout << "[0]" << endl;
         }
         for(int i=0; i<level; ++i) cout << " ";
-        if(root->_right!=0){
-            pre_order_print(root->_right, level+1);
+        if(root->_child[1]){
+            pre_order_print(root->_child[1], level+1);
         }
         else{
             cout << "[0]" << endl;
@@ -309,29 +316,16 @@ private:
     // link its parent and child , this node should have exact 1 child
     void link(BSTreeNode<T>* node){
         if(!node->_parent) return;
-        if(node->_left && !node->_right){
-            if(node->_dir==0){
-                node->_left->_parent = node->_parent;
-                node->_parent->_left = node->_left;
-            }
-            else{
-                node->_left->_parent = node->_parent;
-                node->_parent->_right = node->_left;
-                node->_left->_dir = 1;
-            }
+        if(node->_child[0]){
+            node->_parent->_child[node->_dir] = node->_child[0];
+            node->_child[0]->_parent = node->_parent;
+            node->_child[0]->_dir = node->_dir;
         }
-        else if(!node->_left && node->_right){
-            if(node->_dir==0){
-                node->_right->_parent = node->_parent;
-                node->_parent->_left = node->_right;
-                node->_right->_dir = 0;
-            }
-            else{
-                node->_right->_parent = node->_parent;
-                node->_parent->_right = node->_right;
-            }
+        else if(node->_child[1]){
+            node->_parent->_child[node->_dir] = node->_child[1];
+            node->_child[1]->_parent = node->_parent;
+            node->_child[1]->_dir = node->_dir;
         }
-        else return;
     }
 
 };
