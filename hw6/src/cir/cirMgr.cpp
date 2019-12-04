@@ -61,8 +61,19 @@ static char buf[1024];
 static string errMsg;
 static int errInt;
 static CirGate *errGate;
+static bool parseError(CirParseError);
 
 
+static bool
+myIsPrint(const string& symbol){
+    for (int i = 0; i < (int)symbol.length(); i++,colNo++) {
+        if(!isprint(symbol[i])){
+            errInt = symbol[i];
+            return parseError(ILLEGAL_SYMBOL_NAME) ;
+        }
+    }
+    return true;
+}
 
 static bool
 lexOptions(const string &option, vector<string> &tokens, size_t nOpts) 
@@ -212,7 +223,8 @@ CirMgr::readCircuit(const string& fileName)
         cout << "Cannot open design \"" << fileName << "\"!!" << endl;
         return false;
     }
-    if(!readHeader(cirFile) || !readIO(cirFile, 0) || !readIO(cirFile, 1) || !readAig(cirFile)){
+    if(!readHeader(cirFile)|| !readIO(cirFile, 0) || !readIO(cirFile, 1) || 
+       !readAig(cirFile)   || !readSymbol(cirFile)|| !readComment(cirFile)){
         reset();
         cirFile.close();
         resetStaticVar();
@@ -249,7 +261,7 @@ CirMgr::printSummary() const
             "  PO   " << setw(9)   << right << _miloa[3] << endl <<
             "  AIG  " << setw(9)   << right <<_miloa[4] << endl <<
             "------------------\n" << 
-            "  Total" << setw(9)   << _miloa[0] << endl; 
+            "  Total" << setw(9)   << _miloa[1]+_miloa[3]+_miloa[4] << endl; 
 }
 
 void
@@ -306,6 +318,46 @@ CirMgr::printFloatGates() const
 void
 CirMgr::writeAag(ostream& outfile) const
 {
+    int cnt=0;
+    for (auto i: _dfsList) {
+        if(i->getTypeStr()=="AIG")
+            cnt+=1;
+    }
+    outfile << "aag" << " ";
+    outfile << _miloa[0] << " " << _miloa[1] << " " <<_miloa[2] << " "
+            << _miloa[3] << " " << cnt;
+    for (auto i: _piIdList){
+        outfile << endl;
+        outfile << 2*i;
+    }
+    for (int i=0; i<_miloa[3]; ++i){
+        outfile << endl;
+        CirGate* thisG = _gateList[i+_miloa[0]+1];
+        outfile << 2*(thisG->getInGate()->_id) + CirGate::isInv(thisG->_faninList[0]);  
+    }
+    for (auto i: _dfsList){
+        if(i->getTypeStr()=="AIG"){
+            outfile << endl;
+            unsigned var1 = 2*i->getInGate(0)->_id + CirGate::isInv(i->_faninList[0]) ;
+            unsigned var2 = 2*i->getInGate(1)->_id + CirGate::isInv(i->_faninList[1]) ;
+            outfile << 2*i->_id << " " << var1 << " " << var2;
+        }
+    }
+    cnt = 0;
+    for (auto i: _piIdList){
+        if(!(_gateList[i]->_symbol.empty())){
+            outfile << endl;
+            outfile << "i" << cnt << " " << _gateList[i]->_symbol;
+        }
+        ++cnt;
+    }    
+    for (int i=0; i<_miloa[3]; ++i){
+        CirGate* thisG = _gateList[i+_miloa[0]+1];
+        if(!(thisG->_symbol.empty())){
+            outfile << endl;
+            outfile << "o" << i << " " << thisG->_symbol;
+        }
+    }
 }
 
 CirGate* 
@@ -355,7 +407,7 @@ CirMgr::readHeader(ifstream& ifs)
         errMsg = "latches";
         return parseError(ILLEGAL_NUM);
     }
-    if(_miloa[0] < _miloa[1]+_miloa[2]+_miloa[4]){
+    if(_miloa[0] < _miloa[1]+_miloa[3]){
         errMsg = "num of variables";
         return parseError(NUM_TOO_SMALL);
     }
@@ -370,7 +422,7 @@ CirMgr::readHeader(ifstream& ifs)
 bool
 CirMgr::readIO(ifstream& ifs, unsigned flag) // input(0),output(1)
 {
-    if(_miloa[2*flag+1]==0 && !flag ) return true;
+    if(_miloa[2*flag+1]==0) return true;
     for (int i = 0; i < _miloa[2*flag+1]; ++i) {
         IdList varList;
         int idVar = 0;
@@ -490,11 +542,64 @@ CirMgr::readAig(ifstream& ifs)
 
 bool 
 CirMgr::readSymbol(ifstream& ifs){
+    string bufStr;
+    while(getline(ifs, bufStr)){
+        if(bufStr[0]==' ')
+            return parseError(EXTRA_SPACE);
+        if(bufStr[0]=='c'){
+            strcpy(buf, bufStr.c_str());
+            return true;
+        }
+        if(bufStr[0]=='i' || bufStr[0]=='o'){
+            colNo++; string tmp; int idx;
+            bool isI = bufStr[0]=='i';
+            int maxIdx = isI ? _miloa[1]: _miloa[3];
+            if(bufStr.find(' ')==string::npos){
+                colNo = bufStr.length()-1;
+                return parseError(MISSING_SPACE);
+            }
+            tmp = bufStr.substr(1, bufStr.find(' ')-1);
+            if(!myStr2Int(tmp, idx) || idx<0){
+                errMsg = "symbol index(" + tmp + ")";
+                return parseError(ILLEGAL_NUM);
+            }
+            if( idx>=maxIdx ){
+                errInt = idx;
+                errMsg = (isI?"PI":"PO") + string(" index") ;
+                return parseError(NUM_TOO_BIG);
+            }
+            colNo+=tmp.length(); tmp = bufStr.substr(bufStr.find(' ')+1);
+            if(tmp.empty()){
+                errMsg = "symbolic name";
+                return parseError(MISSING_IDENTIFIER);
+            }
+            if(myIsPrint(tmp)){
+                if(isI && !_gateList[_piIdList[idx]]->setSymbol(tmp)){
+                    errMsg = "i"; errInt = idx;
+                    return parseError(REDEF_SYMBOLIC_NAME);
+                }
+                if(!isI && !_gateList[_miloa[0]+idx+1]->setSymbol(tmp)){
+                    errMsg = "o"; errInt = idx;
+                    return parseError(REDEF_SYMBOLIC_NAME);
+                }
+                colNo = 0; lineNo++;
+            }
+            else return false;
+        }
+        else{
+            errMsg = bufStr[0];
+            return parseError(ILLEGAL_SYMBOL_TYPE);
+        }
+    }
     return true;
 }
-
 bool 
 CirMgr::readComment(ifstream& ifs){
+    if(!ifs) return true;
+    if(strlen(buf)>1) {return false;}
+    while(ifs.getline(buf, 1024)){
+        if(string(buf).empty()) return false;
+    }
     return true;
 }
 
@@ -520,6 +625,7 @@ CirMgr::genDFSList(){
 void
 CirMgr::genNotUsedList(){
     for(int i=1; i<(int)_gateList.size(); ++i){
+        if(!_gateList[i]) continue;
         if(_gateList[i]->defNotUsed())
             _notUsedIdList.push_back(i);
     }

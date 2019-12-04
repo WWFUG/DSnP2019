@@ -25,6 +25,7 @@ class CirGate;
 class CirGate
 {
     #define NEG 0x1
+    friend CirMgr;
 public:
     CirGate(){}
     CirGate(unsigned id, int lineNo, IdList input = IdList()): _lineNo(lineNo), _id(id), _ref(0){
@@ -49,9 +50,16 @@ public:
     void pushFanout(CirGate* fanout){ _fanoutList.push_back(fanout) ;}
     void dfsTraversal() const;
     void preOrderPrint(int level, int& flag, int iter = 0) const;
-    void setSymbol(string sym){_symbol = sym;}
+    bool setSymbol(string sym){ 
+        if(_symbol.empty()){ 
+            _symbol = sym;
+            return true;
+        }
+        return false;
+    }
     virtual bool defNotUsed() = 0;
     virtual void buildConnect() = 0;
+    virtual CirGate* getInGate(unsigned idx=0) = 0;
     static void setGlobalRef() { ++_globalRef; }
     static bool isInv(CirGate* fanin) { return size_t(fanin) & NEG ;}
     static CirGate* getGate(CirGate* fanin) { return (CirGate*)( size_t(fanin) & ~(NEG) );}
@@ -84,6 +92,9 @@ public:
     void buildConnect();
     void printGate() const;
     bool defNotUsed(){return _fanoutList.empty();}
+    CirGate* getInGate(unsigned idx = 0){
+        return getGate(_faninList[idx]);
+    }
 
 private:
 };
@@ -101,6 +112,7 @@ public:
     void buildConnect(){}; // do nothing
     void printGate() const;
     bool defNotUsed(){return _fanoutList.empty();}
+    CirGate* getInGate(unsigned idx=0) { return 0;}
 
 private:
 };
@@ -114,7 +126,7 @@ public:
     void buildConnect();
     void printGate() const;
     bool defNotUsed(){return false;}
-
+    CirGate* getInGate(unsigned idx=0){ return getGate(_faninList[0]);}
 private:
 };
 
@@ -128,6 +140,7 @@ public:
     void buildConnect(){};
     void printGate() const{}; // do nothing
     bool defNotUsed(){return false;}
+    CirGate* getInGate(unsigned idx=0){ return 0;}
 
 private:
 };
