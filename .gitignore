@@ -7,4 +7,4 @@
 #compressed file
 *.tgz
 #pre-compressed folder
-*_hw
+*_hw*
