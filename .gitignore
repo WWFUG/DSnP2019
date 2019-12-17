@@ -4,3 +4,7 @@
 #object file
 *.o
 *.o.*
+#compressed file
+*.tgz
+#pre-compressed folder
+*_hw

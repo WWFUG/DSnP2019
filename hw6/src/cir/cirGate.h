@@ -28,7 +28,7 @@ class CirGate
     friend CirMgr;
 public:
     CirGate(){}
-    CirGate(unsigned id, int lineNo, IdList input = IdList()): _lineNo(lineNo), _id(id), _ref(0){
+    CirGate(unsigned& id, int& lineNo, const IdList& input = IdList()): _lineNo(lineNo), _id(id), _ref(0){
         size_t size = input.size();
         _faninList.resize(size);
         for (size_t i = 0; i < size; ++i) 
@@ -83,7 +83,7 @@ protected:
 class AigGate: public CirGate
 {
 public:
-    AigGate(unsigned id, int lineNo, IdList varList): CirGate( id, lineNo, varList){}
+    AigGate(unsigned& id, int& lineNo, const IdList& varList): CirGate( id, lineNo, varList){}
     ~AigGate(){}
     // access methods
     string getTypeStr() const { return "AIG"; }
@@ -102,7 +102,7 @@ private:
 class PiGate: public CirGate
 {
 public:
-    PiGate(unsigned id, int lineNo): CirGate(id, lineNo) {}
+    PiGate(unsigned& id, int& lineNo): CirGate(id, lineNo) {}
     PiGate(): CirGate(){ _lineNo = 0; _id = 0;} // for const0 gate
     ~PiGate(){}
     string getTypeStr() const { 
@@ -120,7 +120,7 @@ private:
 class PoGate:public CirGate
 {
 public:
-    PoGate(unsigned id, int lineNo, IdList varList): CirGate(id, lineNo, varList) {}
+    PoGate(unsigned& id, int& lineNo, IdList& varList): CirGate(id, lineNo, varList) {}
     ~PoGate(){}
     string getTypeStr() const { return "PO"; }
     void buildConnect();
