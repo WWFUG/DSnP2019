@@ -25,6 +25,7 @@ using namespace std;
 /*   Global variable and enum  */
 /*******************************/
 CirMgr* cirMgr = 0;
+CONST* CirMgr::_const0 = new CONST();
 
 enum CirParseError {
    EXTRA_SPACE,
@@ -58,6 +59,14 @@ static char buf[1024];
 static string errMsg;
 static int errInt;
 static CirGate *errGate;
+
+static void
+resetStaticVar(){
+    lineNo = colNo = 0;
+    memset(buf, 0, sizeof(buf));
+    errInt = 0;
+    errGate = 0;
+}
 
 static bool
 parseError(CirParseError err)
@@ -152,7 +161,31 @@ parseError(CirParseError err)
 bool
 CirMgr::readCircuit(const string& fileName)
 {
-   return true;
+    ifstream cirFile(fileName);
+    if(!cirFile){
+        cout << "Cannot open design \"" << fileName << "\"!!" << endl;
+        cirFile.close();
+        return false;
+    } 
+    if( !readHeader(cirFile) || !readIO(cirFile, 0)  || !readIO(cirFile, 1) ||
+        !readAig(cirFile)    || !readSymbol(cirFile) || !readComment(cirFile)){
+        reset();
+        cirFile.close();
+        resetStaticVar();
+        return false;
+    }
+    cirFile.close();
+    connect();
+    genDFSList();
+    genFltList();
+    return true;
+}
+
+CirGate* 
+CirMgr::getGate( unsigned gid ) const {
+    if( gid > _miloa[0]+_miloa[3] || _gateList[gid]->getTypeStr()=="UNDEF" )
+        return 0;
+    return _gateList[gid];
 }
 
 /**********************************************************/
@@ -170,37 +203,72 @@ Circuit Statistics
 void
 CirMgr::printSummary() const
 {
+        cout << "\nCircuit Statistics\n" <<
+            "==================\n" <<
+            "  PI   " << setw(9)   << right << _miloa[1] << endl <<
+            "  PO   " << setw(9)   << right << _miloa[3] << endl <<
+            "  AIG  " << setw(9)   << right <<_miloa[4] << endl <<
+            "------------------\n" << 
+            "  Total" << setw(9)   << _miloa[1]+_miloa[3]+_miloa[4] << endl; 
 }
 
 void
 CirMgr::printNetlist() const
 {
-/*
-   cout << endl;
-   for (unsigned i = 0, n = _dfsList.size(); i < n; ++i) {
-      cout << "[" << i << "] ";
-      _dfsList[i]->printGate();
-   }
-*/
+    cout << endl;
+    for (unsigned i = 0, n = _dfsList.size(); i < n; ++i) {
+        if(_dfsList[i]->getTypeStr()!="UNDEF"){
+            cout << "[" << i << "] ";
+            _dfsList[i]->printGate();
+            cout << endl;
+        }
+    }
 }
 
 void
 CirMgr::printPIs() const
 {
-   cout << "PIs of the circuit:";
-   cout << endl;
+    unsigned size = _piIdList.size();
+    cout << "PIs of the circuit: ";
+    for (unsigned i=0 ; i<size ; ++i) {
+        cout << _piIdList[i];
+        if(i<size-1)
+            cout << " " ;
+    }
+    cout << endl; 
 }
 
 void
 CirMgr::printPOs() const
 {
-   cout << "POs of the circuit:";
-   cout << endl;
+    cout << "POs of the circuit: ";
+    for (unsigned i = 0; i < _miloa[3] ; ++i) {
+        cout << i+_miloa[0]+1;
+        if(i!=_miloa[3]-1)
+            cout << " " ;
+    }
+    cout << endl; 
 }
 
 void
 CirMgr::printFloatGates() const
 {
+    if(!_fltIdList.empty()){
+        cout << "Gates with floating fanin(s): ";
+        for(auto i=_fltIdList.begin(); i!=_fltIdList.end(); ++i){
+            cout << *i ;
+            if(i!=_fltIdList.end()-1) cout << " ";
+        }
+    }
+    if(!_unusedIdList.empty()){
+        cout << endl;
+        cout << "Gates defined but not used  : ";
+        for(auto i=_unusedIdList.begin(); i!=_unusedIdList.end(); ++i){
+            cout << *i ;
+            if(i!=_unusedIdList.end()-1) cout << " ";
+        }
+    } 
+    cout << endl;
 }
 
 void
@@ -211,10 +279,168 @@ CirMgr::printFECPairs() const
 void
 CirMgr::writeAag(ostream& outfile) const
 {
+    int cnt=0;
+    for (auto i: _dfsList) {
+        if(i->getTypeStr()=="AIG")
+            cnt+=1;
+    }
+    outfile << "aag" << " ";
+    outfile << _miloa[0] << " " << _miloa[1] << " " <<_miloa[2] << " "
+            << _miloa[3] << " " << cnt;
+    for (auto i: _piIdList){
+        outfile << endl;
+        outfile << 2*i;
+    }
+    for (unsigned i=0; i<_miloa[3]; ++i){
+        outfile << endl;
+        CirGate* thisG = _gateList[i+_miloa[0]+1];
+        //TODO
+        outfile << 2*(thisG->_faniList[0].gate()->_id) + thisG->_faniList[0].isInv(); 
+    }
+    for (auto g: _dfsList){
+        if(g->getTypeStr()=="AIG"){
+            outfile << endl;
+            //TODO
+            unsigned var1 = 2*g->_faniList[0].gate()->_id + g->_faniList[0].isInv();
+            unsigned var2 = 2*g->_faniList[1].gate()->_id + g->_faniList[1].isInv() ;
+            outfile << 2*g->_id << " " << var1 << " " << var2;
+        }
+    }
+    cnt = 0;
+    for (auto i: _piIdList){
+        if(!(_gateList[i]->_symbol.empty())){
+            outfile << endl;
+            outfile << "i" << cnt << " " << _gateList[i]->_symbol;
+        }
+        ++cnt;
+    }    
+    for (unsigned i=0; i<_miloa[3]; ++i){
+        CirGate* thisG = _gateList[i+_miloa[0]+1];
+        if(!(thisG->_symbol.empty())){
+            outfile << endl;
+            outfile << "o" << i << " " << thisG->_symbol;
+        }
+    } 
 }
 
 void
 CirMgr::writeGate(ostream& outfile, CirGate *g) const
 {
 }
+
+bool 
+CirMgr::readHeader(ifstream& ifs)
+{
+    ifs >> buf;
+    for(unsigned i=0; i<5; ++i){
+        ifs >> _miloa[i];
+    }
+    _gateList.resize(_miloa[0]+_miloa[3]+1);
+    _piIdList.resize(_miloa[1]); 
+    for (unsigned i = 0; i < _miloa[0]+_miloa[3]+1; ++i) 
+        _gateList[i] = 0;  
+    ++lineNo; _gateList[0] = _const0;
+    return true;
+}
+
+bool 
+CirMgr::readIO(ifstream& ifs, unsigned flag) // input 0, output 1
+{
+    size_t lit;
+    unsigned size = _miloa[2*flag+1];
+    for (unsigned i = 0; i < size; ++i) {
+        ifs >> lit;
+        if(!flag){
+            _gateList[lit/2] = new PIGate(lit/2, lineNo+1);
+            _piIdList[i] = lit/2;
+        }
+        else{
+            _gateList[_miloa[0]+i+1] = new POGate(_miloa[0]+i+1, lineNo+1, lit);
+        }
+        ++lineNo;
+    }
+    return true;
+}
+
+bool 
+CirMgr::readAig(ifstream& ifs)
+{
+    size_t lit[3] = {0};
+    for (unsigned i = 0; i < _miloa[4]; ++i) {
+        ifs >> lit[0] >> lit[1] >> lit[2];
+        _gateList[lit[0]/2] = new AIGate(lit[0]/2, lineNo+1, lit[1], lit[2]);
+
+    }
+    return true;
+}
+
+bool 
+CirMgr::readSymbol(ifstream& ifs)
+{
+    string buffer;
+    while(ifs >> buffer){
+        if(buffer[0]=='c') return true;
+        size_t idx = stoi(buffer.substr(1));
+        string symbol;
+        ifs >> symbol;
+        if(buffer[0]=='i')
+            _gateList[_piIdList[idx]]->setSymbol(symbol);
+        else
+            _gateList[_miloa[0]+1+idx]->setSymbol(symbol);
+    }
+    return true;
+}
+
+bool 
+CirMgr::readComment(ifstream& ifs)
+{
+    return true;
+}
+
+void 
+CirMgr::connect()
+{
+    for(auto g: _gateList){
+        if(g)
+            g->buildConnect();
+    }
+}
+
+void 
+CirMgr::reset()
+{
+    for (unsigned i = 0; i < _gateList.size(); ++i) {
+        if(_gateList[i])
+            delete _gateList[i];
+    }
+    delete _const0; _const0=0;
+}
+
+void
+CirMgr::genDFSList()
+{
+    CirGate::setGlobalRef();
+    for (unsigned i = 0; i < _miloa[3]; ++i) {
+        _gateList[_miloa[0]+i+1]->dfsTraversal();
+    }
+}
+
+void 
+CirMgr::genFltList()
+{
+    for(unsigned i=0; i<_gateList.size(); ++i){
+        if(_gateList[i]){
+            if(_gateList[i]->isFlt())
+                _fltIdList.push_back(i);
+            if(_gateList[i]->unUsed())
+                _unusedIdList.push_back(i);
+        }
+    }
+}
+
+
+
+
+
+
 
