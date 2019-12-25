@@ -409,7 +409,7 @@ CirMgr::connect()
 void 
 CirMgr::reset()
 {
-    for (unsigned i = 0; i < _gateList.size(); ++i) {
+    for (unsigned i = 1; i < _gateList.size(); ++i) {
         if(_gateList[i])
             delete _gateList[i];
     }

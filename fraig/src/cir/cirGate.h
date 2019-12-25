@@ -54,12 +54,13 @@ public:
  
     // Printing functions
     virtual void printGate() const = 0;
+    virtual void dfsTraversal();
+    virtual void sweep();
     void reportGate() const;
     void reportFanin(int level) const;
     void reportFanout(int level) const;
     void setToGlobalRef() const { _ref = CirGate::_globalRef; }
     void buildConnect();
-    virtual void dfsTraversal();
     bool setSymbol(string s){ _symbol = s; return true;}
     bool isGlobalRef() const { return _ref==CirGate::_globalRef; }
     static void setGlobalRef () { ++_globalRef; }
@@ -67,6 +68,7 @@ public:
 private:
     static unsigned _globalRef;
     void preOrderPrint(int& level , const int flag, int iter=0) const;
+    void deleteFano(CirGate* g);
 
 protected:
     GateVList _faniList;
@@ -112,6 +114,7 @@ public:
     PIGate(unsigned id, unsigned lNo): CirGate(id, lNo) {}
     string getTypeStr() const { return "PI"; }
     void printGate() const;
+    void sweep(){};
 private:
 };
 
@@ -122,6 +125,7 @@ public:
     string getTypeStr() const { return "UNDEF"; }
     void printGate() const {}
     bool isFlt() const { return false; }
+    bool unUsed() const {return false;}
 private:
     void dfsTraversal() {}
 };
@@ -131,8 +135,9 @@ class CONST: public CirGate
 public:
     CONST(unsigned id = 0, unsigned lNo = 0): CirGate(id, lNo) {}
     string getTypeStr() const { return "CONST"; }
-    void printGate() const { cout << "CONST" << _id << endl; }
-    bool unUsed() const {return false;}
+    void printGate() const { cout << "CONST" << _id; }
+    void sweep(){};
+    bool unUsed() const {return false;} 
 private:
 };
 

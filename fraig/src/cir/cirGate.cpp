@@ -88,6 +88,7 @@ CirGate::isFlt() const
     }
     return false;
 }
+
 void
 CirGate::buildConnect()
 {
@@ -105,6 +106,35 @@ CirGate::buildConnect()
 }
 
 void
+CirGate::deleteFano(CirGate* g){
+    for(auto iter = _fanoList.begin(); iter!=_fanoList.end(); ++iter){
+        if((*iter).gate()==g){
+            _fanoList.erase(iter);
+            return;
+        }
+    }
+}
+
+void
+CirGate::sweep()
+{
+    // for sweep onty  
+    assert(_fanoList.empty());
+    if(getTypeStr()=="AIG") --(cirMgr->_miloa[4]);
+    cout << "Sweeping: " << getTypeStr() << "(" << _id << ") removed" << endl;
+    for(auto fanin: _faniList){
+        CirGate* g = fanin.gate();
+        if(!g->_fanoList.empty()){
+            g->deleteFano(this);
+        }            
+        if(g->_fanoList.empty())
+            g->sweep();
+    }
+    cirMgr->_gateList[_id] = 0;
+    delete this;
+}
+
+void
 CirGate::dfsTraversal()
 {
     for( auto g: _faniList ){
@@ -117,6 +147,9 @@ CirGate::dfsTraversal()
     cirMgr->_dfsList.push_back(this);
 }
 
+/*************************************/
+/*          AIGATE FUNCTION          */
+/*************************************/
 
 void
 AIGate::printGate() const
@@ -135,6 +168,11 @@ AIGate::printGate() const
 }
 
 
+/*************************************/
+/*          PIGATE FUNCTION          */
+/*************************************/
+
+
 void 
 PIGate::printGate() const
 {
@@ -143,6 +181,9 @@ PIGate::printGate() const
         cout << " (" << _symbol << ")";
 }
 
+/*************************************/
+/*          POGATE FUNCTION          */
+/*************************************/
 
 void 
 POGate::printGate() const
@@ -157,4 +198,14 @@ POGate::printGate() const
     if(!_symbol.empty())
         cout << " (" << _symbol << ")";
 }
+
+/*************************************/
+/*          UNDEF FUNCTION           */
+/*************************************/
+
+
+/*************************************/
+/*          CONST FUNCTION           */
+/*************************************/
+
 
