@@ -20,19 +20,18 @@ using namespace std;
 //-----------------------
 // To use HashMap ADT, you should define your own HashKey class.
 // It should at least overload the "()" and "==" operators.
-//
-// class HashKey
-// {
-// public:
-//    HashKey() {}
-// 
-//    size_t operator() () const { return 0; }
-// 
-//    bool operator == (const HashKey& k) const { return true; }
-// 
-// private:
-// };
-//
+class HashKey
+{
+public:
+    HashKey() {}
+
+    size_t operator() () const { return 0; }
+ 
+    bool operator == (const HashKey& k) const { return true; }
+ 
+private:
+};
+
 template <class HashKey, class HashData>
 class HashMap
 {
@@ -124,19 +123,18 @@ private:
 //---------------------
 // To use Cache ADT, you should define your own HashKey class.
 // It should at least overload the "()" and "==" operators.
-//
-// class CacheKey
-// {
-// public:
-//    CacheKey() {}
-//    
-//    size_t operator() () const { return 0; }
-//   
-//    bool operator == (const CacheKey&) const { return true; }
-//       
-// private:
-// }; 
-// 
+class CacheKey
+{
+public:
+    CacheKey() {}
+    
+    size_t operator() () const { return 0; }
+   
+    bool operator == (const CacheKey&) const { return true; }
+       
+private:
+}; 
+ 
 template <class CacheKey, class CacheData>
 class Cache
 {

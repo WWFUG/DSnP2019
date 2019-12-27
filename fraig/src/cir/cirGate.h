@@ -30,10 +30,12 @@ class GateV
     friend CirGate;
 public:
     GateV(CirGate* g, size_t phase) : _gateV( (size_t)g+phase ){} 
-    GateV(size_t& gateV) : _gateV(gateV) {}
+    GateV(size_t gateV) : _gateV(gateV) {}
     CirGate* gate() const { return (CirGate*)(_gateV & ~NEG);}
-    void setGate(CirGate*& g){ _gateV = size_t(g)+isInv(); }
+    GateV operator ! () const { return GateV((size_t)gate()+!isInv()); }
+    void setGate(CirGate* g){ _gateV = size_t(g)+isInv(); }
     bool isInv() const { return _gateV & NEG;}
+    bool operator == (const GateV& g) const { return _gateV == g._gateV; }
 private:
     size_t _gateV;
 };
@@ -51,9 +53,11 @@ public:
     virtual bool isAig() const { return false; }
     virtual bool isFlt() const;
     unsigned getLineNo() const { return _lineNo; }
+    unsigned getId() const {return _id;}
  
     // Printing functions
     virtual void printGate() const = 0;
+    virtual void optimize(); // for AIGate Only
     virtual void dfsTraversal();
     virtual void sweep();
     void reportGate() const;
@@ -63,12 +67,16 @@ public:
     void buildConnect();
     bool setSymbol(string s){ _symbol = s; return true;}
     bool isGlobalRef() const { return _ref==CirGate::_globalRef; }
+
+
     static void setGlobalRef () { ++_globalRef; }
-   
 private:
     static unsigned _globalRef;
     void preOrderPrint(int& level , const int flag, int iter=0) const;
     void deleteFano(CirGate* g);
+    void replaceFani(CirGate* g, GateV gV);
+    void replaceGate(GateV gV);
+    void pushFano(GateV fano){_fanoList.push_back(fano);}
 
 protected:
     GateVList _faniList;
@@ -78,7 +86,7 @@ protected:
     mutable unsigned _ref;
     string _symbol;
     
-    //bool addFanin(GateV& g){ _faniList.push_back(g); return true; }     //TODO check if repeated
+        //bool addFanin(GateV& g){ _faniList.push_back(g); return true; }     //TODO check if repeated
     //bool addFanout(CirGate*& g){ _fanoList.push_back(g); return true;}
 };
 
@@ -104,6 +112,8 @@ public:
     }
     void printGate() const;
     bool unUsed() const {return false;}
+    void sweep(){}
+    void optimize(){}
     string getTypeStr() const { return "PO"; }
 private:
 };
@@ -114,7 +124,8 @@ public:
     PIGate(unsigned id, unsigned lNo): CirGate(id, lNo) {}
     string getTypeStr() const { return "PI"; }
     void printGate() const;
-    void sweep(){};
+    void sweep();
+    void optimize(){};
 private:
 };
 
@@ -124,10 +135,9 @@ public:
     UNDEF(unsigned id, unsigned lNo = 0): CirGate(id, lNo) {}
     string getTypeStr() const { return "UNDEF"; }
     void printGate() const {}
+    void optimize(){}
     bool isFlt() const { return false; }
-    bool unUsed() const {return false;}
 private:
-    void dfsTraversal() {}
 };
 
 class CONST: public CirGate
@@ -136,7 +146,8 @@ public:
     CONST(unsigned id = 0, unsigned lNo = 0): CirGate(id, lNo) {}
     string getTypeStr() const { return "CONST"; }
     void printGate() const { cout << "CONST" << _id; }
-    void sweep(){};
+    void sweep(){_fanoList.clear();}
+    void optimize(){}
     bool unUsed() const {return false;} 
 private:
 };

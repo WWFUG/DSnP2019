@@ -35,22 +35,18 @@ void
 CirMgr::sweep()
 {
     //TODO determine whether the undefList is needed or not
-    for(auto id: _unusedIdList)
-        _gateList[id]->sweep();
-    //TODO update UNDEF float List
+    vector<unsigned> idList(_miloa[0]+_miloa[3]+1, 1);
     _unusedIdList.clear();_fltIdList.clear();_undefIdList.clear();
     for (auto g: _dfsList) {
-        if(g->getTypeStr()=="UNDEF")
-            _undefIdList.push_back(g->_id);
+        idList[g->_id] = 0;
         if(g->isFlt())
             _fltIdList.push_back(g->_id);
     }
-    for(auto id: _piIdList)
-        if(_gateList[id]->unUsed())
-            _unusedIdList.push_back(id);
     sort(_fltIdList.begin(), _fltIdList.end());
-    sort(_undefIdList.begin(), _undefIdList.end());
-    sort(_unusedIdList.begin(), _unusedIdList.end());
+    for(unsigned i=1; i<idList.size(); ++i){
+        if(idList[i] && _gateList[i])
+            _gateList[i]->sweep();
+    }
 }
 
 // Recursively simplifying from POs;
@@ -59,6 +55,14 @@ CirMgr::sweep()
 void
 CirMgr::optimize()
 {
+    _fltIdList.clear(); _unusedIdList.clear();
+    for(auto g: _dfsList){
+        if(g->isAig())
+            g->optimize();
+    }
+    _dfsList.clear();
+    genDFSList();
+    genFltList();
 }
 
 /***************************************************/

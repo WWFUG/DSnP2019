@@ -55,6 +55,85 @@ CirGate::reportFanout(int level) const
     preOrderPrint(level, 1); 
 }
 
+bool
+CirGate::isFlt() const
+{
+    for(auto g: _faniList){
+        if((g.gate()->getTypeStr())=="UNDEF")
+            return true;
+    }
+    return false;
+}
+
+void
+CirGate::buildConnect()
+{
+    for(unsigned i=0; i<_faniList.size(); ++i){
+        size_t lit = (size_t)(_faniList[i].gate());
+        CirGate* gate = cirMgr->_gateList[lit/2];
+        if(!gate) 
+            gate = cirMgr->_gateList[lit/2] = new UNDEF(lit/2);
+        (gate->_fanoList).push_back(GateV(this, _faniList[i].isInv()));
+        _faniList[i].setGate(gate);
+    }
+}
+
+void
+CirGate::sweep()
+{
+    if(isAig())--(cirMgr->_miloa[4]);
+    cout << "Sweeping: " << getTypeStr() << "(" << _id << ") removed..." << endl;
+    for(auto fanin: _faniList){
+        CirGate* g = fanin.gate();
+        g->deleteFano(this);
+    }
+    cirMgr->_gateList[_id] = 0;
+    delete this;
+}
+
+void
+CirGate::dfsTraversal()
+{
+    for( auto g: _faniList ){
+        CirGate* thisG = g.gate();
+        if(!thisG->isGlobalRef()){
+            thisG->setToGlobalRef();
+            thisG->dfsTraversal();
+        }
+    }
+    cirMgr->_dfsList.push_back(this);
+}
+
+/*==========CirGate private member functino=========*/
+void
+CirGate::deleteFano(CirGate* g){
+    for(auto iter = _fanoList.begin(); iter!=_fanoList.end(); ++iter){
+        if((*iter).gate()==g)
+            _fanoList.erase(iter--);
+    }
+}
+
+void
+CirGate::replaceFani(CirGate* g, GateV gV){
+    for(unsigned i=0; i<_faniList.size(); ++i){
+        if(_faniList[i].gate()==g)
+            _faniList[i] = gV;
+    }
+}
+
+// for optmize, gV is one of the input
+void 
+CirGate::replaceGate(GateV gV){  
+    size_t phase = gV.isInv();
+    for(auto g: _faniList)
+        g.gate()->deleteFano(this);
+    cout << "Simplifying: " << gV.gate()->getId() << " merging " <<  (gV.isInv()?"!":"") << _id << "..." << endl; 
+    for(auto g: _fanoList){
+        g.gate()->replaceFani(this, GateV(gV.gate(), (phase+g.isInv())%2 ) ); // be aware of double inverter
+        gV.gate()->pushFano(g);
+    }
+}
+
 void
 CirGate::preOrderPrint(int& level, int flag, int iter) const
 {
@@ -79,73 +158,39 @@ CirGate::preOrderPrint(int& level, int flag, int iter) const
     } 
 }
 
-bool
-CirGate::isFlt() const
-{
-    for(auto g: _faniList){
-        if((g.gate()->getTypeStr())=="UNDEF")
-            return true;
-    }
-    return false;
-}
-
 void
-CirGate::buildConnect()
+CirGate::optimize()
 {
-    for(unsigned i=0; i<_faniList.size(); ++i){
-        size_t lit = (size_t)(_faniList[i].gate());
-        CirGate* gate = cirMgr->_gateList[lit/2];
-        if(!gate) {
-            gate = cirMgr->_gateList[lit/2] = new UNDEF(lit/2);
-            cirMgr->_undefIdList.push_back(lit/2);
-        }
-        else
-            (gate->_fanoList).push_back(GateV(this, lit%2));
-        _faniList[i].setGate(gate);
+    GateV gV1 = _faniList[0]; CirGate* g1 = gV1.gate(); 
+    GateV gV2 = _faniList[1]; CirGate* g2 = gV2.gate();
+    bool isRemove = false;
+    if( gV1==gV2 ){
+        this->replaceGate(gV1);
+        isRemove = 1;
     }
-}
-
-void
-CirGate::deleteFano(CirGate* g){
-    for(auto iter = _fanoList.begin(); iter!=_fanoList.end(); ++iter){
-        if((*iter).gate()==g){
-            _fanoList.erase(iter);
-            return;
-        }
+    else if( !gV1==gV2 || ( (!g1->getId()&&!gV1.isInv()) || (!g2->getId()&&!gV2.isInv()) ) ){ 
+        this->replaceGate( GateV((size_t)cirMgr->_const0));
+        isRemove = 1;
+    }
+    else if( !g1->getId() || !g2->getId()){
+        this->replaceGate( !g1->getId() ? gV2:gV1 );
+        isRemove = 1;
+    }
+    if(g1->unUsed() && g1->getTypeStr()=="UNDEF"){
+        cirMgr->_gateList[ g1->getId() ] = 0;
+        delete gV1.gate();
+    }
+    if(g2->unUsed() && g2->getTypeStr()=="UNDEF"){
+        cirMgr->_gateList[ g1->getId() ] = 0;
+        delete gV2.gate();
+    }
+    if(isRemove){ 
+        cirMgr->_gateList[_id] = 0;
+        --cirMgr->_miloa[4];
+        delete this;
     }
 }
 
-void
-CirGate::sweep()
-{
-    // for sweep onty  
-    assert(_fanoList.empty());
-    if(getTypeStr()=="AIG") --(cirMgr->_miloa[4]);
-    cout << "Sweeping: " << getTypeStr() << "(" << _id << ") removed" << endl;
-    for(auto fanin: _faniList){
-        CirGate* g = fanin.gate();
-        if(!g->_fanoList.empty()){
-            g->deleteFano(this);
-        }            
-        if(g->_fanoList.empty())
-            g->sweep();
-    }
-    cirMgr->_gateList[_id] = 0;
-    delete this;
-}
-
-void
-CirGate::dfsTraversal()
-{
-    for( auto g: _faniList ){
-        CirGate* thisG = g.gate();
-        if(!thisG->isGlobalRef()){
-            thisG->setToGlobalRef();
-            thisG->dfsTraversal();
-        }
-    }
-    cirMgr->_dfsList.push_back(this);
-}
 
 /*************************************/
 /*          AIGATE FUNCTION          */
@@ -161,12 +206,11 @@ AIGate::printGate() const
             cout << "*";
         if(_faniList[i].isInv())
             cout << "!";
-        cout << ((AIGate*)thisGate)->_id;
+        cout << thisGate->getId();
         if(i!=1)
             cout << " " ;
     }
 }
-
 
 /*************************************/
 /*          PIGATE FUNCTION          */
@@ -181,6 +225,12 @@ PIGate::printGate() const
         cout << " (" << _symbol << ")";
 }
 
+void 
+PIGate::sweep()
+{
+    _fanoList.clear();
+    cirMgr->_unusedIdList.push_back(_id);
+}
 /*************************************/
 /*          POGATE FUNCTION          */
 /*************************************/

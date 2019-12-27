@@ -183,7 +183,7 @@ CirMgr::readCircuit(const string& fileName)
 
 CirGate* 
 CirMgr::getGate( unsigned gid ) const {
-    if( gid > _miloa[0]+_miloa[3] || _gateList[gid]->getTypeStr()=="UNDEF" )
+    if( !_gateList[gid] || gid > _miloa[0]+_miloa[3])
         return 0;
     return _gateList[gid];
 }
@@ -215,12 +215,13 @@ CirMgr::printSummary() const
 void
 CirMgr::printNetlist() const
 {
+    unsigned cnt = 0;
     cout << endl;
     for (unsigned i = 0, n = _dfsList.size(); i < n; ++i) {
         if(_dfsList[i]->getTypeStr()!="UNDEF"){
-            cout << "[" << i << "] ";
+            cout << "[" << cnt << "] ";
             _dfsList[i]->printGate();
-            cout << endl;
+            cout << endl; ++cnt;
         }
     }
 }
@@ -259,16 +260,16 @@ CirMgr::printFloatGates() const
             cout << *i ;
             if(i!=_fltIdList.end()-1) cout << " ";
         }
+        cout << endl;
     }
     if(!_unusedIdList.empty()){
-        cout << endl;
         cout << "Gates defined but not used  : ";
         for(auto i=_unusedIdList.begin(); i!=_unusedIdList.end(); ++i){
             cout << *i ;
             if(i!=_unusedIdList.end()-1) cout << " ";
         }
+        cout << endl;
     } 
-    cout << endl;
 }
 
 void
@@ -413,7 +414,6 @@ CirMgr::reset()
         if(_gateList[i])
             delete _gateList[i];
     }
-    delete _const0; _const0=0;
 }
 
 void
@@ -432,7 +432,7 @@ CirMgr::genFltList()
         if(_gateList[i]){
             if(_gateList[i]->isFlt())
                 _fltIdList.push_back(i);
-            if(_gateList[i]->unUsed())
+            if(_gateList[i]->unUsed() && _gateList[i]->getTypeStr()!="UNDEF")
                 _unusedIdList.push_back(i);
         }
     }
