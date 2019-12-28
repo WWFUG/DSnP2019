@@ -369,8 +369,7 @@ CirMgr::readAig(ifstream& ifs)
     size_t lit[3] = {0};
     for (unsigned i = 0; i < _miloa[4]; ++i) {
         ifs >> lit[0] >> lit[1] >> lit[2];
-        _gateList[lit[0]/2] = new AIGate(lit[0]/2, lineNo+1, lit[1], lit[2]);
-
+        _gateList[lit[0]/2] = new AIGate(lit[0]/2, ++lineNo, lit[1], lit[2]);
     }
     return true;
 }

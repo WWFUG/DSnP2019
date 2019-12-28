@@ -69,7 +69,7 @@ private:
     unsigned           _miloa[5];
     GateList           _gateList;
     GateList           _dfsList;
-    IdList             _piIdList, _fltIdList, _unusedIdList, _undefIdList;
+    IdList             _piIdList, _fltIdList, _unusedIdList;
  
     static CONST* _const0;
     // private helper function

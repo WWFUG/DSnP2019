@@ -34,9 +34,8 @@ using namespace std;
 void
 CirMgr::sweep()
 {
-    //TODO determine whether the undefList is needed or not
     vector<unsigned> idList(_miloa[0]+_miloa[3]+1, 1);
-    _unusedIdList.clear();_fltIdList.clear();_undefIdList.clear();
+    _unusedIdList.clear();_fltIdList.clear();
     for (auto g: _dfsList) {
         idList[g->_id] = 0;
         if(g->isFlt())
@@ -60,8 +59,11 @@ CirMgr::optimize()
         if(g->isAig())
             g->optimize();
     }
-    _dfsList.clear();
-    genDFSList();
+    if(CirGate::isNetChanged()){
+        _dfsList.clear();
+        genDFSList();
+        CirGate::resetChanged();
+    }
     genFltList();
 }
 

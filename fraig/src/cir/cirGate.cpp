@@ -23,7 +23,19 @@ using namespace std;
 
 extern CirMgr *cirMgr;
 unsigned CirGate::_globalRef = 0;
+bool     CirGate::_netChanged = 0;
 
+/**************************************/
+/*     class GateV member functions   */
+/**************************************/
+bool
+GateV::operator ! () const{
+    return !gate()->getId() && !isInv();
+}
+
+GateV::operator bool () const{
+    return !gate()->getId() && isInv();
+}
 /**************************************/
 /*   class CirGate member functions   */
 /**************************************/
@@ -127,7 +139,7 @@ CirGate::replaceGate(GateV gV){
     size_t phase = gV.isInv();
     for(auto g: _faniList)
         g.gate()->deleteFano(this);
-    cout << "Simplifying: " << gV.gate()->getId() << " merging " <<  (gV.isInv()?"!":"") << _id << "..." << endl; 
+    cout << gV.gate()->getId() << " merging " <<  (gV.isInv()?"!":"") << _id << "..." << endl; 
     for(auto g: _fanoList){
         g.gate()->replaceFani(this, GateV(gV.gate(), (phase+g.isInv())%2 ) ); // be aware of double inverter
         gV.gate()->pushFano(g);
@@ -165,26 +177,30 @@ CirGate::optimize()
     GateV gV2 = _faniList[1]; CirGate* g2 = gV2.gate();
     bool isRemove = false;
     if( gV1==gV2 ){
+        cout << "Simplifying: ";
         this->replaceGate(gV1);
         isRemove = 1;
     }
-    else if( !gV1==gV2 || ( (!g1->getId()&&!gV1.isInv()) || (!g2->getId()&&!gV2.isInv()) ) ){ 
+    else if( (~gV1)==gV2 || (!gV1 || !gV2) ){ 
+        cout << "Simplifying: ";
         this->replaceGate( GateV((size_t)cirMgr->_const0));
         isRemove = 1;
     }
-    else if( !g1->getId() || !g2->getId()){
-        this->replaceGate( !g1->getId() ? gV2:gV1 );
+    else if( gV1 || gV2 ){
+        cout << "Simplifying: ";
+        this->replaceGate( gV1 ? gV2:gV1 );
         isRemove = 1;
     }
-    if(g1->unUsed() && g1->getTypeStr()=="UNDEF"){
-        cirMgr->_gateList[ g1->getId() ] = 0;
-        delete gV1.gate();
-    }
-    if(g2->unUsed() && g2->getTypeStr()=="UNDEF"){
-        cirMgr->_gateList[ g1->getId() ] = 0;
-        delete gV2.gate();
-    }
     if(isRemove){ 
+        if(g1->unUsed() && g1->getTypeStr()=="UNDEF"){
+            cirMgr->_gateList[ g1->getId() ] = 0;
+            delete gV1.gate();
+        }
+        if(g2->unUsed() && g2->getTypeStr()=="UNDEF"){
+            cirMgr->_gateList[ g1->getId() ] = 0;
+            delete gV2.gate();
+        }
+        CirGate::setChanged();
         cirMgr->_gateList[_id] = 0;
         --cirMgr->_miloa[4];
         delete this;

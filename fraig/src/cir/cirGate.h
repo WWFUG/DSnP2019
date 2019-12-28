@@ -20,6 +20,8 @@ using namespace std;
 // TODO: Feel free to define your own classes, variables, or functions.
 
 class CirGate;
+struct Strash;
+struct KeyEqual;
 
 //------------------------------------------------------------------------
 //   Define classes
@@ -32,10 +34,12 @@ public:
     GateV(CirGate* g, size_t phase) : _gateV( (size_t)g+phase ){} 
     GateV(size_t gateV) : _gateV(gateV) {}
     CirGate* gate() const { return (CirGate*)(_gateV & ~NEG);}
-    GateV operator ! () const { return GateV((size_t)gate()+!isInv()); }
     void setGate(CirGate* g){ _gateV = size_t(g)+isInv(); }
     bool isInv() const { return _gateV & NEG;}
+    GateV operator ~ () const { return GateV((size_t)gate()+!isInv()); }
     bool operator == (const GateV& g) const { return _gateV == g._gateV; }
+    bool operator ! () const; 
+    operator bool() const;
 private:
     size_t _gateV;
 };
@@ -68,10 +72,13 @@ public:
     bool setSymbol(string s){ _symbol = s; return true;}
     bool isGlobalRef() const { return _ref==CirGate::_globalRef; }
 
-
+    static bool isNetChanged () { return _netChanged; }
+    static void setChanged   () { _netChanged = 1;}
+    static void resetChanged () { _netChanged = 0;}
     static void setGlobalRef () { ++_globalRef; }
 private:
     static unsigned _globalRef;
+    static bool     _netChanged;
     void preOrderPrint(int& level , const int flag, int iter=0) const;
     void deleteFano(CirGate* g);
     void replaceFani(CirGate* g, GateV gV);
@@ -93,6 +100,7 @@ protected:
 
 class AIGate: public CirGate
 {
+    friend struct Strash;
 public:
     AIGate(unsigned id, unsigned lNo, size_t& in1, size_t& in2): CirGate(id, lNo) {
         _faniList.push_back(GateV(in1)); // in1 & in2 are literals 
