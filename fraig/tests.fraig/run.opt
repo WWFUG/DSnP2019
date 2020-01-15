@@ -24,5 +24,7 @@ echo "cirp -pi" >> $dofile
 echo "cirp -po" >> $dofile
 echo "cirp -n" >> $dofile
 echo "cirp -fl" >> $dofile
+echo "usage" >> $dofile
 echo "q -f" >> $dofile
-../fraig -f $dofile
+../fraig -f $dofile >> opt.all.mine
+../ref/fraig -f $dofile >> opt.all.ref

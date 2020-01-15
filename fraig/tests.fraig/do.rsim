@@ -7,7 +7,7 @@ cirp -fl
 usage
 cirstrash
 usage
-cirsim -file pattern.15
+cirsim -random
 usage
 cirp -fec
 usage

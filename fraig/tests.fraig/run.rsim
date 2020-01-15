@@ -25,4 +25,5 @@ echo "usage" >> $dofile
 echo "cirp -fec" >> $dofile
 echo "usage" >> $dofile
 echo "q -f" >> $dofile
-../fraig -f $dofile
+../fraig -f $dofile >> sim.all.mine
+../ref/fraig -f $dofile >> sim.all.ref
